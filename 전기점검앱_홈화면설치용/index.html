@@ -1,0 +1,1864 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="format-detection" content="telephone=no">
+<meta name="theme-color" content="#1A2B4A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="전기점검">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<title>안성공장 생산설비 전기부분 유지보수 점검</title>
+<style>
+  :root{
+    --navy:#1A2B4A;
+    --navy-light:#24395E;
+    --teal:#0D9488;
+    --teal-bg:#ECFDF5;
+    --amber:#F59E0B;
+    --amber-bg:#FFFBEB;
+    --red:#EF4444;
+    --red-bg:#FEF2F2;
+    --bg:#F8FAFC;
+    --card:#FFFFFF;
+    --border:#E2E8F0;
+    --text-dark:#1F2937;
+    --text-mid:#374151;
+    --text-light:#64748B;
+    --bar-h:110px;
+  }
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  body{
+    margin:0;
+    font-family:"Apple SD Gothic Neo","Malgun Gothic","Pretendard",-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);
+    color:var(--text-dark);
+    padding-bottom:calc(var(--bar-h) + 16px);
+  }
+  button{font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+
+  /* ---- header (스크롤과 함께 올라감, 요약 막대만 상단 고정) ---- */
+  header{
+    background:var(--navy);
+    color:#fff;
+    padding:16px max(16px, env(safe-area-inset-right)) 12px max(16px, env(safe-area-inset-left));
+  }
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .main-title-input{
+    flex:1;min-width:0;font-size:18px;font-weight:700;letter-spacing:-0.2px;
+    background:transparent;border:none;border-bottom:1px dashed rgba(255,255,255,.35);
+    color:#fff;font-family:inherit;padding:2px 0;outline:none;border-radius:0;
+  }
+  .main-title-input::placeholder{color:rgba(255,255,255,.5);}
+  .main-title-input:focus{border-bottom:1px solid #fff;background:rgba(255,255,255,.08);border-radius:4px;padding-left:4px;}
+  .date-badge{
+    position:relative;font-size:12px;color:#A7C9E8;background:rgba(255,255,255,.08);
+    padding:6px 10px;border-radius:8px;white-space:nowrap;
+  }
+  .date-badge input{
+    position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;margin:0;padding:0;
+    font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none;
+  }
+  .save-state{font-size:11px;color:#8EB8D6;margin-top:6px;min-height:14px;}
+  .save-state.fail{color:#FCA5A5;font-weight:700;}
+
+  .meta-grid{
+    display:grid;
+    grid-template-columns:0.9fr 1.2fr 0.9fr;
+    grid-template-areas:"plant line insp" "eq eq eq" "info info info";
+    gap:8px;margin-top:8px;
+  }
+  #plantSel{grid-area:plant;} #lineCombo{grid-area:line;} #inspector{grid-area:insp;}
+  #eqCombo{grid-area:eq;} #eqInfo{grid-area:info;}
+  @media (max-width:420px){
+    .main-title-input{font-size:16px;}
+    .meta-grid{grid-template-columns:1fr 1fr;grid-template-areas:"plant insp" "line line" "eq eq" "info info";}
+  }
+  .meta-grid input, .meta-grid select{
+    width:100%;margin:0;padding:9px 10px;border-radius:8px;
+    border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);
+    color:#fff;font-size:13px;font-family:inherit;appearance:none;-webkit-appearance:none;
+  }
+  .meta-grid select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23A7C9E8'><path d='M5.5 7.5l4.5 4.5 4.5-4.5z'/></svg>");
+    background-repeat:no-repeat;background-position:right 8px center;background-size:16px;padding-right:26px;
+  }
+  .meta-grid select option{color:#1F2937;background:#fff;}
+  .meta-grid select:disabled{opacity:1;background-image:none;padding-right:10px;color:#fff;-webkit-text-fill-color:#fff;}
+  .meta-grid input::placeholder{color:#8EB8D6;}
+  .meta-grid input:focus, .meta-grid select:focus{outline:none;border-color:#A7C9E8;background-color:rgba(255,255,255,.14);}
+  .meta-point{font-size:11.5px;color:#8EB8D6;min-height:14px;line-height:1.45;}
+  .meta-point .linked{color:#fff;font-weight:600;}
+
+  .combo{position:relative;min-width:0;}
+  .combo-list{
+    display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+    max-height:45vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+    background:#fff;color:var(--text-dark);border-radius:10px;
+    box-shadow:0 8px 24px rgba(0,0,0,.28);z-index:30;
+  }
+  .combo-list.show{display:block;}
+  .combo-opt{padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .combo-opt.hl, .combo-opt:active{background:var(--teal-bg);}
+  .combo-opt .o-main{font-size:14px;font-weight:700;line-height:1.35;}
+  .combo-opt .o-sub{font-size:11.5px;color:var(--text-light);margin-top:2px;line-height:1.35;}
+  .combo-note{padding:9px 12px;font-size:12px;color:var(--text-light);background:var(--bg);}
+
+  /* ---- summary (상단 고정, 누르면 그 상태만 보기) ---- */
+  .summary-bar{
+    display:flex;gap:6px;
+    padding:10px max(12px, env(safe-area-inset-right)) 10px max(12px, env(safe-area-inset-left));
+    background:var(--card);border-bottom:1px solid var(--border);
+    position:sticky;top:0;z-index:19;
+  }
+  .summary-chip{
+    flex:1;min-width:0;text-align:center;padding:6px 2px;border-radius:10px;
+    font-size:12px;font-weight:700;border:2px solid transparent;
+  }
+  .summary-chip .num{display:block;font-size:18px;margin-bottom:1px;}
+  .summary-chip.on{border-color:currentColor;}
+  .chip-total{background:var(--bg);color:var(--text-mid);}
+  .chip-ok{background:var(--teal-bg);color:var(--teal);}
+  .chip-warn{background:var(--amber-bg);color:#B45309;}
+  .chip-bad{background:var(--red-bg);color:var(--red);}
+  .chip-none{background:var(--bg);color:var(--text-light);}
+  .filter-note{display:none;padding:8px 14px;font-size:12px;color:var(--text-light);}
+  .filter-note.show{display:block;}
+
+  main{padding:14px 12px;}
+  main[data-filter] .item{display:none;}
+  main[data-filter="ok"] .item[data-status="ok"],
+  main[data-filter="warn"] .item[data-status="warn"],
+  main[data-filter="bad"] .item[data-status="bad"],
+  main[data-filter="none"] .item[data-status="none"]{display:block;}
+  main[data-filter] .add-item-form{display:none;}
+
+  .category{margin-bottom:16px;}
+  .category-head{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    padding:10px 14px;background:var(--navy);border-radius:10px 10px 0 0;cursor:pointer;
+    -webkit-user-select:none;user-select:none;
+  }
+  .category.collapsed .category-head{border-radius:10px;}
+  .category.collapsed .category-body{display:none;}
+  .category-head h2{font-size:14px;color:#fff;margin:0;font-weight:700;flex:1;min-width:0;}
+  .cat-caret{color:#A7C9E8;font-size:11px;margin-right:4px;display:inline-block;transition:transform .15s;}
+  .category.collapsed .cat-caret{transform:rotate(-90deg);}
+  .cat-prog{font-size:11.5px;color:#A7C9E8;background:rgba(255,255,255,.1);padding:3px 8px;border-radius:10px;white-space:nowrap;}
+  .category-head .del-cat-btn{
+    background:rgba(239,68,68,.25);border:none;color:#fff;font-size:12px;
+    padding:7px 10px;border-radius:6px;min-height:32px;white-space:nowrap;
+  }
+  .category-body{background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;overflow:hidden;}
+
+  .item{padding:12px 14px;border-bottom:1px solid var(--border);}
+  .item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .item-name{font-size:14px;font-weight:700;color:var(--text-dark);line-height:1.4;}
+  .item-time{font-size:11px;color:var(--text-light);margin-top:2px;}
+  .print-status{display:none;}
+  .item-del{
+    background:var(--red-bg);border:none;color:var(--red);font-size:16px;line-height:1;
+    padding:0;width:32px;height:32px;min-width:32px;border-radius:8px;flex-shrink:0;
+  }
+  .item-del:active{background:var(--red);color:#fff;}
+
+  .status-group{display:flex;gap:6px;margin-top:10px;}
+  .status-btn{
+    flex:1;padding:10px 0;border-radius:8px;border:1px solid var(--border);
+    background:var(--bg);color:var(--text-mid);font-size:13px;font-weight:700;
+  }
+  .status-btn.ok.active{background:var(--teal);border-color:var(--teal);color:#fff;}
+  .status-btn.warn.active{background:var(--amber);border-color:var(--amber);color:#fff;}
+  .status-btn.bad.active{background:var(--red);border-color:var(--red);color:#fff;}
+
+  .action-row{display:flex;gap:6px;margin-top:10px;}
+  .action-btn{
+    flex:1;display:flex;align-items:center;justify-content:center;gap:4px;
+    padding:9px 0;border-radius:8px;border:1px dashed var(--border);background:var(--bg);
+    color:var(--text-mid);font-size:12px;font-weight:600;white-space:nowrap;
+  }
+  .action-btn.recording{background:var(--red-bg);border-color:var(--red);color:var(--red);border-style:solid;}
+  input[type="file"]{display:none;}
+
+  .notes{
+    width:100%;margin-top:8px;padding:8px 10px;border-radius:8px;border:1px solid var(--border);
+    font-size:13px;color:var(--text-dark);font-family:inherit;resize:vertical;min-height:38px;line-height:1.45;
+  }
+  .notes-print{display:none;}
+
+  .photo-strip{display:flex;gap:8px;margin-top:8px;overflow-x:auto;padding:8px 8px 2px 0;}
+  .photo-thumb{position:relative;flex:0 0 auto;}
+  .photo-thumb img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border);display:block;}
+  .photo-thumb .rm{
+    position:absolute;top:-8px;right:-8px;width:24px;height:24px;border-radius:50%;
+    background:var(--red);color:#fff;border:2px solid #fff;font-size:13px;line-height:20px;text-align:center;padding:0;
+  }
+
+  .add-item-form{display:flex;padding:12px 14px;background:var(--bg);gap:8px;}
+  .add-item-form input, .add-category-wrap input{
+    flex:1;min-width:0;padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px;font-family:inherit;
+  }
+  .add-item-form button, .add-category-wrap button{
+    background:var(--teal);color:#fff;border:none;padding:0 16px;border-radius:8px;font-size:13px;font-weight:700;min-width:56px;
+  }
+  .add-category-wrap{display:flex;gap:8px;margin:4px 0 16px;}
+  .add-category-wrap input{border-style:dashed;border-color:var(--text-light);}
+
+  .about{font-size:12px;color:var(--text-light);margin:8px 2px 0;line-height:1.55;}
+  .about summary{cursor:pointer;padding:6px 0;}
+  .about ul{margin:4px 0 8px;padding-left:18px;}
+  .share-test{margin:8px 0;padding:10px;border:1px dashed var(--border);border-radius:8px;background:#fff;}
+  .share-test-btns{display:flex;gap:6px;margin-top:6px;}
+  .share-test-btns button{flex:1;padding:9px 0;border-radius:8px;border:1px solid var(--navy);background:#fff;color:var(--navy);font-weight:700;font-size:12px;}
+
+  /* ---- bottom bar ---- */
+  .bottom-bar{
+    position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);
+    padding:8px max(10px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+    display:grid;grid-template-columns:repeat(3, 1fr);gap:6px;
+    box-shadow:0 -2px 8px rgba(0,0,0,.06);z-index:20;
+  }
+  .bottom-bar button{
+    padding:10px 2px;border-radius:10px;border:none;font-size:12.5px;font-weight:700;line-height:1.25;min-height:42px;
+  }
+  .btn-save{background:var(--teal);color:#fff;}
+  .btn-export{background:var(--navy);color:#fff;}
+  .btn-export-alt{background:var(--navy-light);color:#fff;}
+  .btn-import{background:#fff;color:var(--navy);border:1px solid var(--navy) !important;}
+  .btn-reset{background:var(--red-bg);color:var(--red);}
+
+  .toast{
+    position:fixed;bottom:calc(var(--bar-h) + 12px);left:50%;
+    transform:translateX(-50%) translateY(20px);max-width:calc(100% - 32px);
+    background:var(--navy);color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;line-height:1.4;text-align:center;
+    opacity:0;transition:opacity .25s, transform .25s;z-index:60;pointer-events:none;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .modal-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:40;
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-overlay img{max-width:100%;max-height:85vh;border-radius:10px;}
+
+  .sheet-overlay{
+    display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:50;
+    align-items:flex-end;justify-content:center;
+  }
+  .sheet-overlay.show{display:flex;}
+  .sheet{
+    background:#fff;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;border-radius:16px 16px 0 0;
+    padding:18px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  .sheet h3{margin:0 0 4px;font-size:16px;color:var(--navy);}
+  .sheet-desc{font-size:12.5px;color:var(--text-light);margin:0 0 6px;line-height:1.5;white-space:pre-line;word-break:break-all;}
+  .sheet-warn{display:none;font-size:12.5px;color:#92400E;background:var(--amber-bg);border:1px solid #FDE68A;border-radius:8px;padding:9px 10px;margin:8px 0 4px;line-height:1.5;}
+  .sheet-warn.show{display:block;}
+  .sheet-opts button{
+    display:block;width:100%;text-align:left;padding:13px 14px;margin-top:8px;border-radius:10px;
+    border:1px solid var(--border);background:var(--bg);font-size:14px;font-weight:700;color:var(--text-dark);
+  }
+  .sheet-opts button small{display:block;font-weight:400;font-size:11.5px;color:var(--text-light);margin-top:3px;line-height:1.4;}
+  .sheet-opts button.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+  .sheet-opts button.primary small{color:#A7C9E8;}
+  .sheet-opts button.danger{color:var(--red);background:var(--red-bg);border-color:#FECACA;}
+  .sheet-opts button.cancel{text-align:center;background:#fff;color:var(--text-light);}
+
+  /* 휴대폰: 입력칸 글자 16px 이상이어야 아이폰이 화면을 멋대로 확대하지 않는다 */
+  @media (pointer:coarse){
+    .meta-grid input, .meta-grid select, .notes, .add-item-form input, .add-category-wrap input{font-size:16px;}
+  }
+
+  .print-header{display:none;}
+  @media print{
+    header, .summary-bar, .filter-note, .bottom-bar, .action-row, .status-group, .item-del, .del-cat-btn,
+    .add-item-form, .add-category-wrap, .about, .toast, .sheet-overlay, .modal-overlay, textarea.notes, .cat-caret, .item-time{display:none !important;}
+    body{padding-bottom:0;background:#fff;}
+    main{padding:0;}
+    main .item{display:block !important;}
+    .category.collapsed .category-body{display:block !important;}
+    .category{break-inside:auto;}
+    .category-head{background:#fff !important;border:1px solid #999;border-bottom:none;border-radius:0 !important;padding:6px 10px;}
+    .category-head h2{color:#1A2B4A;}
+    .cat-prog{background:none;color:#1A2B4A;}
+    .category-body{border:1px solid #999;border-radius:0;}
+    .item{padding:8px 10px;}
+    .item-top{break-inside:avoid;page-break-inside:avoid;}
+    .print-header{display:block;border-bottom:2px solid #1A2B4A;padding-bottom:10px;margin-bottom:14px;}
+    .print-header h1{font-size:18px;color:#1A2B4A;}
+    .print-meta{display:flex;gap:6px 22px;flex-wrap:wrap;font-size:12px;color:#1F2937;}
+    .print-meta b{color:#64748B;font-weight:600;margin-right:4px;}
+    .print-top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:6px;}
+    .print-top h1{margin:0;flex:1;min-width:0;}
+    .approval{border-collapse:collapse;table-layout:fixed;flex:none;margin-left:auto;}
+    .approval th,.approval td{border:1px solid #1A2B4A;text-align:center;width:62px;}
+    .approval th{background:#EEF2F7 !important;color:#1A2B4A;font-size:11px;font-weight:700;padding:3px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .approval td{height:50px;}
+    .print-status{display:inline-block;font-size:12px;font-weight:700;border:1px solid #999;border-radius:4px;padding:1px 8px;white-space:nowrap;}
+    .print-status.ok{color:#0D9488;border-color:#0D9488;}
+    .print-status.warn{color:#B45309;border-color:#B45309;}
+    .print-status.bad{color:#DC2626;border-color:#DC2626;}
+    .notes-print{display:block;white-space:pre-wrap;font-size:12px;color:#1F2937;margin-top:4px;line-height:1.5;}
+    .notes-print:empty{display:none;}
+    .photo-strip{flex-wrap:wrap;overflow:visible;gap:10px;padding:0;}
+    .photo-thumb{break-inside:avoid;page-break-inside:avoid;}
+    .photo-thumb img{width:220px;height:220px;object-fit:cover;border:1px solid #999;}
+    .photo-thumb .rm{display:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-row">
+    <input type="text" id="mainTitle" class="main-title-input" placeholder="🔧 점검 제목 입력" aria-label="점검 제목">
+    <div class="date-badge" title="점검일자 바꾸기"><span id="dateText">-</span><input type="date" id="inspDate" aria-label="점검일자"></div>
+  </div>
+  <div class="save-state" id="saveState">불러오는 중…</div>
+  <div class="meta-grid">
+    <select id="plantSel" aria-label="공장"></select>
+    <div class="combo" id="lineCombo">
+      <input type="text" id="lineName" placeholder="라인 (선택/검색)" autocomplete="off" aria-label="라인">
+      <div class="combo-list" role="listbox"></div>
+    </div>
+    <input type="text" id="inspector" placeholder="점검자" autocomplete="off" aria-label="점검자">
+    <div class="combo" id="eqCombo">
+      <input type="text" id="eqName" placeholder="🔍 설비 검색 (이름, 제작사, 모델, 초성 ㄹㅍ)" autocomplete="off" aria-label="설비명">
+      <div class="combo-list" role="listbox"></div>
+    </div>
+    <div class="meta-point" id="eqInfo"></div>
+  </div>
+</header>
+
+<div class="print-header" id="printHeader">
+  <div class="print-top">
+    <h1 id="printMainTitle">🔧 생산설비 전기부분 유지보수 점검</h1>
+    <table class="approval" aria-label="결재란">
+      <tr><th>담당</th><th>직장</th><th>매니저</th><th>팀장</th><th>공장장</th></tr>
+      <tr><td></td><td></td><td></td><td></td><td></td></tr>
+    </table>
+  </div>
+  <div class="print-meta">
+    <span><b>점검일자</b><span id="printDate">-</span></span>
+    <span><b>공장</b><span id="printPlant">-</span></span>
+    <span><b>라인/공정</b><span id="printLineName">-</span></span>
+    <span><b>설비명</b><span id="printEqName">-</span></span>
+    <span><b>Asset ID</b><span id="printAssetId">-</span></span>
+    <span><b>제작사/모델</b><span id="printMaker">-</span></span>
+    <span><b>점검자</b><span id="printInspector">-</span></span>
+    <span><b>결과</b><span id="printSummary">-</span></span>
+  </div>
+</div>
+
+<div class="summary-bar" id="summaryBar">
+  <button type="button" class="summary-chip chip-total" data-f=""><span class="num" id="cntTotal">0</span>전체</button>
+  <button type="button" class="summary-chip chip-ok" data-f="ok"><span class="num" id="cntOk">0</span>정상</button>
+  <button type="button" class="summary-chip chip-warn" data-f="warn"><span class="num" id="cntWarn">0</span>주의</button>
+  <button type="button" class="summary-chip chip-bad" data-f="bad"><span class="num" id="cntBad">0</span>이상</button>
+  <button type="button" class="summary-chip chip-none" data-f="none"><span class="num" id="cntNone">0</span>미점검</button>
+</div>
+
+<main id="categoryContainer"></main>
+<div class="filter-note" id="filterNote"></div>
+
+<div style="padding:0 12px 14px;">
+  <div class="add-category-wrap">
+    <input type="text" id="newCatName" placeholder="+ 새 점검 카테고리 (예: 예비발전기)" autocomplete="off">
+    <button type="button" id="addCategoryBtn">추가</button>
+  </div>
+  <details class="about">
+    <summary>버전 정보 v2.4, 설비 목록 기준</summary>
+    <div id="equipSrc"></div>
+    <div id="envInfo"></div>
+    <div class="share-test" id="shareTest">
+      <div>공유 시험: 하나씩 눌러 Webex 로 보내 보고, 대화창에 <b>파일이 첨부되는 것</b>을 알려 주세요</div>
+      <div class="share-test-btns">
+        <button type="button" data-t="txt">TXT</button>
+        <button type="button" data-t="csv">CSV</button>
+        <button type="button" data-t="json">JSON</button>
+        <button type="button" data-t="pdf">PDF</button>
+        <button type="button" data-t="png">사진</button>
+      </div>
+    </div>
+    <ul>
+      <li><b>v2.5 (2026-10-25)</b> 인쇄/PDF 화면 오른쪽 상단에 결재란 추가 (담당·직장·매니저·팀장·공장장)</li>
+      <li><b>v2.4 (2026-10-23)</b> 백업을 PDF 로: Webex 등에 바로 첨부되고, 받은 사람은 점검 결과표로 보고, '백업 불러오기'로 열면 사진까지 복원 (예전 json 백업도 불러오기 됨)</li>
+      <li><b>v2.3 (2026-10-23)</b> 공유 시험 버튼 (Webex 가 첨부로 받는 파일 종류 확인용)</li>
+      <li><b>v2.2 (2026-10-23)</b>
+        <ul>
+          <li>안드로이드에서 백업 보내기 공유 창이 안 뜨던 문제 수정 (백업을 .txt 로 공유). 공유가 막히면 오류 내용을 보여 주고 '다시 공유'는 다른 파일 형식으로 시도</li>
+        </ul>
+      </li>
+      <li><b>v2.1 (2026-10-23)</b>
+        <ul>
+          <li>휴대폰에서 CSV, 백업 버튼을 누르면 바로 공유 창이 열립니다 (Webex, 메일, 카카오톡, '파일에 저장'). 공유 창을 닫으면 다운로드, 표 복사를 고를 수 있습니다</li>
+          <li>공장 전용판: 그 공장 설비만 들어 있고 공장 선택이 고정됩니다</li>
+        </ul>
+      </li>
+      <li><b>v2.0 (2026-10-23)</b>
+        <ul>
+          <li>설비 마스터 연동: 공장 선택, 라인 드롭다운, 설비 검색(이름, 제작사, 모델, 초성). Asset ID, 제작사, 모델이 함께 기록</li>
+          <li>내보내기 개선: 휴대폰은 공유 창으로 '파일에 저장', 드라이브, 메일, 메신저 전송 (안드로이드, 아이폰 공통). 다운로드, 표 복사도 선택 가능</li>
+          <li>백업 불러오기 추가: 다른 휴대폰이나 PC에서 이어서 작업</li>
+          <li>저장 개선: 사진 자동 압축, 대용량 저장소 사용으로 사진이 많아도 저장이 끊기지 않음</li>
+          <li>점검일자 지정, 상태별 모아 보기(상단 숫자 누르기), 카테고리 접기, 앨범 사진 여러 장 추가, 새 점검 시작</li>
+          <li>CSV: 기존 열 순서 유지, 맨 뒤에 공장, Asset ID, 제작사, 모델명 추가. 점검일자는 내보낸 날이 아니라 점검일자</li>
+        </ul>
+      </li>
+      <li><b>v1.0</b> 최초 버전</li>
+    </ul>
+  </details>
+</div>
+
+<div class="bottom-bar" id="bottomBar">
+  <button type="button" class="btn-save" id="saveBtn">💾 저장</button>
+  <button type="button" class="btn-export" id="exportCsvBtn">📊 CSV<br>내보내기</button>
+  <button type="button" class="btn-export-alt" id="printBtn">🖨 인쇄/PDF</button>
+  <button type="button" class="btn-export-alt" id="exportJsonBtn">📤 백업<br>내보내기</button>
+  <button type="button" class="btn-import" id="importBtn">📥 백업<br>불러오기</button>
+  <button type="button" class="btn-reset" id="resetBtn">🔄 새 점검</button>
+</div>
+<input type="file" id="importFile">
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-overlay" id="photoModal">
+  <img id="modalImg" src="" alt="사진 확대">
+</div>
+
+<div class="sheet-overlay" id="sheet">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <h3 id="sheetTitle"></h3>
+    <p class="sheet-desc" id="sheetDesc"></p>
+    <div class="sheet-warn" id="sheetWarn"></div>
+    <div class="sheet-opts" id="sheetOpts"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var APP_VERSION = "2.5";
+  var STORAGE_KEY = "production_electrical_maintenance_v1";   // v1 이 쓰던 저장 칸: 처음 열 때 이어받는다
+  var DB_NAME = "production_electrical_maintenance";
+  var EDITION = "안성공장";                            // 예: "안성공장" (공장 전용판), 빈칸이면 전공장판
+  var EQUIP = {"src":"안성공장 설비마스터 2026-08-26 (운영중 287건)","P":["안성"],"L":[[0,"BIB"],[0,"어셉틱1호"],[0,"어셉틱2호"],[0,"어셉틱3호"],[0,"유틸리티"],[0,"주스펫"],[0,"탄산캔"],[0,"탄산펫1호"],[0,"탄산펫2호"]],"E":[[0,"안성-BIB-001","","CASE ERECTOR(8각 제함기)","OTOR 시스템","FCO 140 S"],[0,"안성-BIB-002","","BIB FILLER","LIQUI-BOX","PACESETTER Ⅱ (MODEL: 1500C1T)"],[0,"안성-BIB-003","","SHUTTLE CON'V","진명 FMC",""],[0,"안성-BIB-004","","TOP SEALER","성지 산업","SL-30"],[0,"안성-BIB-005","","Weight Checker","FINE","FAC-5500"],[0,"안성-BIB-006","","STICKER LABELLER","WEBER","ALPHA COMPACT"],[0,"안성-BIB-007","","BIB CONVEYOR","무학기계",""],[0,"안성-BIB-008","","ROBOT PALLETIZER","ABB","IRB 640"],[0,"안성-BIB-009","","PALLET MAGAZINE","무학기계",""],[0,"안성-BIB-010","","PALLET CONVEYOR","무학기계",""],[0,"안성-BIB-011","","H.T.S.T","웰크론 한텍","GEA / VT 40"],[0,"안성-BIB-012","","PRINTER","MASH PATRION","PATRION PLUS"],[0,"안성-BIB-013","","코딩 검사기","자이로시스템",""],[0,"안성-BIB-014","","BAG 코더","대주","VIDEOJET 1610"],[1,"안성-어셉틱1호-001","","BLOWING M/C","SIDEL","SBO 20/24"],[1,"안성-어셉틱1호-002","","AIR CONVEYOR","SHIBUYA","AZ1200"],[1,"안성-어셉틱1호-003","","CAP STERILIZER","SHIBUYA","CSA2006"],[1,"안성-어셉틱1호-004","","BOTTLE STERILIZER","SHIBUYA","APS1845/1230"],[1,"안성-어셉틱1호-005","","ROTARY RINSER","SHIBUYA","SRR3690W/SD"],[1,"안성-어셉틱1호-006","","WEIGHT FILLER","SHIBUYA","NWF32-81F"],[1,"안성-어셉틱1호-007","","SERVO CAPPER","SHIBUYA","ESC7218A"],[1,"안성-어셉틱1호-008","","HOPPER ROADER","SHIBUYA","HLB2120W20"],[1,"안성-어셉틱1호-009","","CAP SORTER","SHIBUYA","CSF2012"],[1,"안성-어셉틱1호-010","","PRE-SYSTEM (어셉틱 모듈)","SHIBUYA",""],[1,"안성-어셉틱1호-011","","ACCUMULATOR CONVEYOR","대성후드텍",""],[1,"안성-어셉틱1호-012","","BOTTLE CONVEYOR","대성후드텍","Z2100"],[1,"안성-어셉틱1호-013","","SHRINK LABELLER","SHIBUYA","ASL1630-11"],[1,"안성-어셉틱1호-014","","INCPECTOR (외관 검사기)","KIRIN","KBI357A"],[1,"안성-어셉틱1호-015","","BOTTLE CONVEYOR","신원시스템",""],[1,"안성-어셉틱1호-016","","STICKER LABELLER","LINE TECH","SRV100NZ"],[1,"안성-어셉틱1호-017","","DIVIDER(W/A포장기用)","대성후드텍",""],[1,"안성-어셉틱1호-018","","Wrap Around Packer","",""],[1,"안성-어셉틱1호-019","","DIVIDER(Shrink포장기用)","대성후드텍",""],[1,"안성-어셉틱1호-020","","번들 Shrink Packer","",""],[1,"안성-어셉틱1호-021","","COMBINER","",""],[1,"안성-어셉틱1호-022","","Bundle CONVEYOR","",""],[1,"안성-어셉틱1호-023","","WEIGHT CHECKER","FINE","FAC-5500"],[1,"안성-어셉틱1호-024","","CASE CONVEYOR","대성후드텍",""],[1,"안성-어셉틱1호-025","","CASE CONVEYOR","신원시스템",""],[1,"안성-어셉틱1호-026","","PALLETIZER","SHIBUYA","UTP1200A"],[1,"안성-어셉틱1호-027","","PALLET CONVEYOR","대성후드텍",""],[1,"안성-어셉틱1호-028","","PALLET CONVEYOR","신원시스템",""],[1,"안성-어셉틱1호-029","","BANDING MACHINE","한국포장기계",""],[1,"안성-어셉틱1호-030","","WET SCRUBBER(탈취탑)","ECOEN","LT-WSCR-MO1"],[1,"안성-어셉틱1호-031","","제품 Coder","VIDEOJET SYSTEM","EXCEL 170i UHS"],[1,"안성-어셉틱1호-032","","Box Coder","대주","PATROINPLUS"],[1,"안성-어셉틱1호-033","","X-RAY 검사기","농심엔지니어링","XIS - 5000"],[1,"안성-어셉틱1호-034","","이종캡 검사기","자이로시스템",""],[1,"안성-어셉틱1호-035","","제품 Coder","대주",""],[1,"안성-어셉틱1호-036","","전처리","IWAI","C6011E"],[1,"안성-어셉틱1호-037","","CAP 이송 CONVEYOR","진명 FMC",""],[1,"안성-어셉틱1호-038","","포장기 필름 Auto Trolley","JMC진명/PRONOMIC","225P"],[1,"안성-어셉틱1호-039","","PALLET MAGAZINE","신원시스템",""],[2,"안성-어셉틱2호-001","","프리폼 공급장치","GEA PROCOMAC","투입:KPTL-1010 / 이송:VZT-5063"],[2,"안성-어셉틱2호-002","","Strech blow molder","KHS","InnoPET Blomax 16LRXBLSG"],[2,"안성-어셉틱2호-003","","Chiller","KHS","InnoPET Blomax 16LRXBLSG"],[2,"안성-어셉틱2호-004","","Hot water generator","KHS","InnoPET Blomax 16LRXBLSG"],[2,"안성-어셉틱2호-005","","Aseptic Filler (Weight type)","SHIBUYA","NWF32-90"],[2,"안성-어셉틱2호-006","","Bottle sterilizer","SHIBUYA","APS1440-1235"],[2,"안성-어셉틱2호-007","","Bottle rinser","SHIBUYA","SRR2160"],[2,"안성-어셉틱2호-008","","Servo Capper","SHIBUYA","ESC7220"],[2,"안성-어셉틱2호-009","","Cap sterilizer","SHIBUYA","CSA1010"],[2,"안성-어셉틱2호-010","","Cap sorter","SHIBUYA","ECF1120"],[2,"안성-어셉틱2호-011","","Aseptic Water AUHT Unit","IWAI",""],[2,"안성-어셉틱2호-012","","AL,AC,Add Tank (3EA)","IWAI",""],[2,"안성-어셉틱2호-013","","ACT Tank Unit","IWAI",""],[2,"안성-어셉틱2호-014","","ACT Tank Utility Unit","IWAI",""],[2,"안성-어셉틱2호-015","","ACT Panel","IWAI",""],[2,"안성-어셉틱2호-016","","COP Receiver Tank Unit","IWAI",""],[2,"안성-어셉틱2호-017","","Filler Balance Tank Unit","IWAI",""],[2,"안성-어셉틱2호-018","","STICKER LABELLER","KRONES","AUTOCOL 1800-45"],[2,"안성-어셉틱2호-019","","BOTTLE CONVEYOR","신원시스템","MAT TOP CHAIN C/V"],[2,"안성-어셉틱2호-020","","PACKER","DOUGLAS","AXIOM ARC COUNTINUOUS MOTION WRAOAROUBD CASE PACKER"],[2,"안성-어셉틱2호-021","","WEIGHT CHECKER","화인매카트로닉스",""],[2,"안성-어셉틱2호-022","","CASE CONVEYOR","신원시스템","MTTOP C/V WITH INSERT ROLLER"],[2,"안성-어셉틱2호-023","","DIVIDER","LM S.p.A","04060715 / 9DVT00615"],[2,"안성-어셉틱2호-024","","PALLETIZER","OCME","UPT200A"],[2,"안성-어셉틱2호-025","","WRAPPING MACHINE","두성엠텍","ROTATING ARM TYPE AUTOMATIC"],[2,"안성-어셉틱2호-026","","PALLET CONVEYOR","신원시스템","R.S CHAIN DRIVER TYPE"],[2,"안성-어셉틱2호-027","","WET SCRUBBER(탈취탑)","선일 ECT","(충진탑 TYPE)"],[2,"안성-어셉틱2호-028","","CHECK MAT","KRONES","CHECKMAT 731"],[2,"안성-어셉틱2호-029","","프리폼 INSPECTION","FT SYSTEM","HS700-FC-ST"],[2,"안성-어셉틱2호-030","","LEVEL CHECKER","FT SYSTEM","HS700-FC-ST"],[2,"안성-어셉틱2호-031","","제품 Coder","대주","VIDEOJET 1620,VIDEOJET 1610"],[2,"안성-어셉틱2호-032","","Box Coder","대주","PATROINPLUS"],[2,"안성-어셉틱2호-033","","오토라벨러","진코퍼레이션","1PC-170DP"],[2,"안성-어셉틱2호-034","","전처리","IWAI","C6011"],[2,"안성-어셉틱2호-035","","Accum table","대성후드텍",""],[3,"안성-어셉틱3호-001","","어셉틱 전처리","IWAI",""],[3,"안성-어셉틱3호-002","","어셉틱 카보네이터","IWAI",""],[3,"안성-어셉틱3호-003","","프리폼 공급장치","BTW",""],[3,"안성-어셉틱3호-004","","프리폼 이송 컨베어","대성후드텍",""],[3,"안성-어셉틱3호-005","","어셉틱콤비블럭-과산화수소 멸균시스템","SHIBUYA",""],[3,"안성-어셉틱3호-006","","BLOWING MACHINE","KHS",""],[3,"안성-어셉틱3호-007","","무균시스템","SHIBUYA",""],[3,"안성-어셉틱3호-008","","FILLER","SHIBUYA",""],[3,"안성-어셉틱3호-009","","CAP SORTER","SHIBUYA",""],[3,"안성-어셉틱3호-010","","CAP STERILIZER","SHIBUYA",""],[3,"안성-어셉틱3호-011","","CAPPER","SHIBUYA",""],[3,"안성-어셉틱3호-012","","CIP UNIT for 전처리","IWAI",""],[3,"안성-어셉틱3호-013","","CIP UNIT for Filler","SHIBUYA",""],[3,"안성-어셉틱3호-014","","WARMER","대성후드텍",""],[3,"안성-어셉틱3호-015","","ROLL_FED LABELLER","KRONES",""],[3,"안성-어셉틱3호-016","","SLEEVE SHRINK LABLLER","DASE-SING",""],[3,"안성-어셉틱3호-017","","캡 & 이종캡 검사기","캠텍",""],[3,"안성-어셉틱3호-018","","코딩 검사기","캠텍",""],[3,"안성-어셉틱3호-019","","FILL LEVEL 검사기","FILTEC",""],[3,"안성-어셉틱3호-020","","이물검사기(X-RAY)","농심ENG",""],[3,"안성-어셉틱3호-021","","라벨 검사기","캠텍",""],[3,"안성-어셉틱3호-022","","DATE CODER(Oil)","VIDEO JET",""],[3,"안성-어셉틱3호-023","","DATE CODER(Water)","VIDEO JET",""],[3,"안성-어셉틱3호-024","","PAD SHRINK PACKER","ACMI(이태리)",""],[3,"안성-어셉틱3호-025","","W/A PACKER","대성후드텍",""],[3,"안성-어셉틱3호-026","","BOX 자동 투입 설비","대성후드텍",""],[3,"안성-어셉틱3호-027","","PALLETIZER","ACMI(이태리)",""],[3,"안성-어셉틱3호-028","","WAPPING MACHINE","대성후드텍",""],[3,"안성-어셉틱3호-029","","AUTO INFEED GUIDE(SHRINK)","대성후드텍",""],[3,"안성-어셉틱3호-030","","AUTO INFEED GUIDE(W/A)","대성후드텍",""],[3,"안성-어셉틱3호-031","","AUTO INFEED GUIDE(DIVIDER)","대성후드텍",""],[3,"안성-어셉틱3호-032","","Case 단위 바코드 라벨라","DOMINO","M230i"],[4,"안성-유틸리티-001","보일러","증기보일러(수관식)","",""],[4,"안성-유틸리티-002","보일러","증기보일러(수관식)","",""],[4,"안성-유틸리티-003","보일러","증기보일러(관류식)","",""],[4,"안성-유틸리티-004","보일러","증기보일러(관류식)","",""],[4,"안성-유틸리티-005","냉동","NH3 Com'p","Sablo",""],[4,"안성-유틸리티-006","냉동","NH3 Com'p","Sablo",""],[4,"안성-유틸리티-007","냉동","NH3 Com'p","Sablo",""],[4,"안성-유틸리티-008","냉동","EVA-CON","Sablo",""],[4,"안성-유틸리티-009","냉동","EVA-CON","태화인더스트리",""],[4,"안성-유틸리티-010","냉동","EVA-CON","경동R&H",""],[4,"안성-유틸리티-011","냉동","BRINE COOLER","Alfa Laval",""],[4,"안성-유틸리티-012","냉동","BRINE COOLER","Alfa Laval",""],[4,"안성-유틸리티-013","냉동","BRINE COOLER","Alfa Laval",""],[4,"안성-유틸리티-014","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-015","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-016","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-017","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-018","압축공기","Air Compressor(왕복동)","GTC",""],[4,"안성-유틸리티-019","압축공기","Air Compressor(왕복동)","아트라스콥코",""],[4,"안성-유틸리티-020","압축공기","Air Compressor(왕복동)","GTC",""],[4,"안성-유틸리티-021","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-022","압축공기","Air Compressor(왕복동)","아트라스콥코",""],[4,"안성-유틸리티-023","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-024","압축공기","Air Compressor(왕복동)","아트라스콥코",""],[4,"안성-유틸리티-025","압축공기","Air Compressor(Screw)","아트라스콥코",""],[4,"안성-유틸리티-026","압축공기","Air Compressor(스크류)","아트라스콥코",""],[4,"안성-유틸리티-027","압축공기","Air Compressor(스크류)","한신",""],[4,"안성-유틸리티-028","칠러","Chiller(어셉틱 1 1~5호)","센츄리",""],[4,"안성-유틸리티-029","칠러","Chiller(어셉틱 2 1~4호)","센츄리",""],[4,"안성-유틸리티-030","칠러","Chiller(어셉틱 3 1~5호)","센츄리",""],[4,"안성-유틸리티-031","칠러","Chiller(탄산 배합 1~3호)","센츄리",""],[4,"안성-유틸리티-032","칠러","Chiller(탄산 배합 4~5호)","센츄리",""],[4,"안성-유틸리티-033","칠러","Chiller(어셉틱 탄산 배합 1~2호)","센츄리",""],[4,"안성-유틸리티-034","칠러","Chiller(신규 탄산 배합 1~5호)","센츄리",""],[4,"안성-유틸리티-035","칠러","Chiller(BIB 1호)","센츄리",""],[4,"안성-유틸리티-036","칠러","Chiller(인플란트 1~2호)","센츄리",""],[4,"안성-유틸리티-037","칠러","Chiller(탄산펫2 공조 1~4호)","센츄리",""],[4,"안성-유틸리티-038","칠러","Chiller(어셉틱2 공조 1~5호)","센츄리",""],[4,"안성-유틸리티-039","칠러","Chiller(어셉틱3 공조 1~8호)","센츄리",""],[4,"안성-유틸리티-040","칠러","Chiller(제병기 몰드 탄산펫2)","RIEDEL",""],[4,"안성-유틸리티-041","칠러","Chiller(압축기동력 재확인 필요 어셉틱2)","RIEDEL",""],[4,"안성-유틸리티-042","칠러","Chiller(압축기동력 재확인 필요 어셉틱3)","RIEDEL",""],[4,"안성-유틸리티-043","칠러","Chiller(냉동창고 1~3호)","빅쳐",""],[4,"안성-유틸리티-044","칠러","Chiller(냉장창고 1~2호)","빅쳐",""],[4,"안성-유틸리티-045","냉각탑","Cooling Tower(대향류형)","동흥냉열",""],[4,"안성-유틸리티-046","냉각탑","Cooling Tower(밀페형)","아트라스콥코",""],[4,"안성-유틸리티-047","냉각탑","Cooling Tower(밀페형)","동해공업",""],[4,"안성-유틸리티-048","냉각탑","Cooling Tower(밀페형)","공성기계",""],[4,"안성-유틸리티-049","냉각탑","Cooling Tower(밀페형)","공성기계",""],[4,"안성-유틸리티-050","냉각탑","Cooling Tower(밀페형)","디에스시티",""],[5,"안성-주스펫-001","","DE PALLETIZER","KETTNER","MACHINE NO 20/0143021/00100"],[5,"안성-주스펫-002","","AIR CONVEYOR-Φ38","KRONES","K-970-106"],[5,"안성-주스펫-003","","AIR CONVEYOR-Φ28","도형IM",""],[5,"안성-주스펫-004","","RINSER","KRONES","K-563-134"],[5,"안성-주스펫-005","","FILLER","KRONES","SENSOMETIC VP-GL(K331-559)"],[5,"안성-주스펫-006","","CAPPER","ALCOA","CSI-4130/1080,SERIES 4000"],[5,"안성-주스펫-007","","LINER REJECTION","KRONES","주입실(K-083-713)"],[5,"안성-주스펫-008","","CAP PASTEURIZER","신일기계",""],[5,"안성-주스펫-009","","H.T.S.T","경원산업","GEA - VT40"],[5,"안성-주스펫-010","","U.H.T","경원산업","GEA - VT40"],[5,"안성-주스펫-011","","COOLER","KRONES","RHE-2WB-388/13/K-572-024"],[5,"안성-주스펫-012","","BOTTLE CONVEYOR","KRONES","K-995-425"],[5,"안성-주스펫-013","","ACCUMULATOR CONVEYOR","대성후드텍",""],[5,"안성-주스펫-014","","제품 DIVIDER","대성후드텍","DSF-02"],[5,"안성-주스펫-015","","WRAP AROUND CASER","OCME","ALTAIR N/50"],[5,"안성-주스펫-016","","CARTON CONVEYOR","KRONES","K-465-C98"],[5,"안성-주스펫-017","","WEIGHT CHECKER","FINE","FAC-5500"],[5,"안성-주스펫-018","","BOX DIVIDER","KRONES","K-465-C98 / 8-465-64-7310"],[5,"안성-주스펫-019","","PALLETIZER","KETTNER","MACHINE NO 20/0455/012(KR 51-229)"],[5,"안성-주스펫-020","","PALLET SYSTEM","KETTNER","K-454-C24"],[5,"안성-주스펫-021","","PALLET CONVEYOR","KRONES","K-453-C12"],[5,"안성-주스펫-022","","CAP FEEDER","태양하이텍",""],[5,"안성-주스펫-023","","CAP 이송 CONVEYOR","신원시스템",""],[5,"안성-주스펫-024","","제품 CORDER","VIDEOJET SYSTEM","VIDEOJET 1610"],[5,"안성-주스펫-025","","수성BOX CODER","PATRIONPLUS","MARSH"],[5,"안성-주스펫-026","","X-RAY 검사기","농심","XIS - 5000"],[5,"안성-주스펫-027","","LASER CODER","VIDEOJET SYSTEM","VIDEOJET 3320"],[5,"안성-주스펫-028","","코딩 검사기","CAMTEC","KPL-511D"],[5,"안성-주스펫-029","","캡 & 이종캡 검사기","자이로시스템","GR08-01"],[5,"안성-주스펫-030","","LEVEL CHECKER","FILTEC","FT-70"],[5,"안성-주스펫-031","","PALLET MAGAZINE","신원시스템",""],[6,"안성-탄산캔-001","","DE-PALLETIZER","대성후드텍","DSF-BDP-014-1200CPM"],[6,"안성-탄산캔-002","","공관 이송 CONVEYOR","대성후드텍","DSF-CAT-014-001"],[6,"안성-탄산캔-003","","E.C.I(EMPTY CAN INSPECTOR)","기린(일본)","CAI-2736"],[6,"안성-탄산캔-004","","RINSER","대성후드텍","DSF-CAR-1200"],[6,"안성-탄산캔-005","","FILLER","KRONES","K-224-158"],[6,"안성-탄산캔-006","","공관 이송 CONVEYOR","대성후드텍",""],[6,"안성-탄산캔-007","","MIXER","대성후드텍",""],[6,"안성-탄산캔-008","","CIP UNIT","대성후드텍",""],[6,"안성-탄산캔-009","","SEAMER","A BARRY-WEHMILLER(ANGELUS)","12MH-13454"],[6,"안성-탄산캔-010","","PASTEURIZER","대성후드텍","DSF-P1200-C60"],[6,"안성-탄산캔-011","","CAN 이송 CONVEYOR","대성후드텍","DSF-CAT-014-001"],[6,"안성-탄산캔-012","","BUNDLE SHRINK PACKER","ACMI(이태리)","FENIX-295"],[6,"안성-탄산캔-013","","PACK CONVEYOR","ACMI(이태리)","C 6662"],[6,"안성-탄산캔-014","","PACK DIVIDER","ACMI(이태리)",""],[6,"안성-탄산캔-015","","HALF TRAY PACKER","ACMI(이태리)","FENIX-155V"],[6,"안성-탄산캔-016","","HALF TRAY SHRINK PACKER","ACMI(이태리)","FENIX-155"],[6,"안성-탄산캔-017","","WRAP AROUND PACKER","대성후드텍","DSF-WAP-50"],[6,"안성-탄산캔-018","","CASE CONVEYOR","대성후드텍",""],[6,"안성-탄산캔-019","","WEIGHT CHECKER","대성후드텍",""],[6,"안성-탄산캔-020","","DIVIDER","대성후드텍",""],[6,"안성-탄산캔-021","","PALLETIZER","대성후드텍","DSF-HLP-014-60BPM"],[6,"안성-탄산캔-022","","PALLET CONVEYOR","대성후드텍",""],[6,"안성-탄산캔-023","","DRY-SYSTEM","대성후드텍",""],[6,"안성-탄산캔-024","","X-RAY","농심엔지니어링","XIS-5000"],[6,"안성-탄산캔-025","","LEVEL CHECKER","FILTEC","FT-70"],[6,"안성-탄산캔-026","","DETA CODER","VIDEO JET","VIDEOJET 1610"],[6,"안성-탄산캔-027","","코딩 검사기","자이로","GV-751D"],[6,"안성-탄산캔-028","","WEIGHT CHECKER","FINE","FAC-5500"],[6,"안성-탄산캔-029","","BOX CODER","MARSH","PATRIONPLUS"],[6,"안성-탄산캔-030","","END 자동투입기","대성후드텍","EU-05, EDP-05"],[6,"안성-탄산캔-031","","UnWrapper, DeStrapper","현대로보틱스",""],[6,"안성-탄산캔-032","","Case 단위 바코드 라벨라","DOMINO","M230i"],[6,"안성-탄산캔-033","","PALLET MAGAZINE","신원시스템",""],[7,"안성-탄산펫1호-001","","DE PALLETIZER","KHS","INNOPAL-AM 1ASH PL"],[7,"안성-탄산펫1호-002","","AIR CONVEYOR","KHS","BTR /31 2203/0301"],[7,"안성-탄산펫1호-003","","RINSER","KHS","INNOCLEAN FR-ZM 120/36PI"],[7,"안성-탄산펫1호-004","","FILLER","KHS","INNOFILL DVF 140/25SV 36PI"],[7,"안성-탄산펫1호-005","","PLASTIC CAPPER","ALCOA","ALCOA 600SERIES SV-36pi"],[7,"안성-탄산펫1호-006","","PARAMIX","KHS","INNOPRO CMX 45/T30-15"],[7,"안성-탄산펫1호-007","","WARMER","KHS","INNOPAS-W1SG 42-75"],[7,"안성-탄산펫1호-008","","BOTTLE CONVEYOR","KHS","BTR /31 2203/1101"],[7,"안성-탄산펫1호-009","","BOTTLE CONVEYOR","신원시스템",""],[7,"안성-탄산펫1호-010","","SLEEVE SHRINK LABELLAR","DASE-SING","DSL-600A"],[7,"안성-탄산펫1호-011","","PAD SHRINK PACKER","",""],[7,"안성-탄산펫1호-012","","HANDLE APPLICATOR","KISTERS","PROGRIP Z50"],[7,"안성-탄산펫1호-013","","WEIGHT CHECKER","FINE",""],[7,"안성-탄산펫1호-014","","CARTON CONVEYOR","",""],[7,"안성-탄산펫1호-015","","Bundle CONVEYOR","",""],[7,"안성-탄산펫1호-016","","PALLETIZER","OCME","ORION ADVANCE"],[7,"안성-탄산펫1호-017","","STRETCH WRAPPER","Robopac","GENESIS THUNDER"],[7,"안성-탄산펫1호-018","","PALLET CONVEYOR","KHS","PTR-30 2203/2300"],[7,"안성-탄산펫1호-019","","PALLET CONVEYOR","신원시스템",""],[7,"안성-탄산펫1호-020","","CAP 이송 CONVEYOR","신원시스템",""],[7,"안성-탄산펫1호-021","","LEVEL-CHECKER","FILTEC","FT-70"],[7,"안성-탄산펫1호-022","","X-RAY 검사기","농심","XIS - 5000"],[7,"안성-탄산펫1호-023","","코딩검사기","CAMTEC","KPL-511D"],[7,"안성-탄산펫1호-024","","이종캡& 캡검사기","자이로시스템",""],[7,"안성-탄산펫1호-025","","제품 CORDER","대주","VJ-1610 ( 캡,숄더 코딩 )"],[7,"안성-탄산펫1호-026","","제품 CORDER","대주","VJ-1710 ( 백색 코딩 )"],[7,"안성-탄산펫1호-027","","BOX CORDER","LINX","LINX 6800"],[7,"안성-탄산펫1호-028","","FILL HEIGHT CONTROL","FILTEC","FT-70B"],[7,"안성-탄산펫1호-029","","Case 단위 바코드 라벨라","DOMINO","M230i"],[8,"안성-탄산펫2호-001","","Blowing M/C","KHS","B24LRBLS serie V"],[8,"안성-탄산펫2호-002","","Filler, Capper","KHS","DRV 160/25/36"],[8,"안성-탄산펫2호-003","","CIP unit","KHS","Innopro CIP 1-1000/3-6000/60A"],[8,"안성-탄산펫2호-004","","Cap Feeder","GASSNER",""],[8,"안성-탄산펫2호-005","","Mixer","KHS","Paramix C 60"],[8,"안성-탄산펫2호-006","","FMS","HEUFT",""],[8,"안성-탄산펫2호-007","","Preform Feeder","KHS",""],[8,"안성-탄산펫2호-008","","이물검사기","농심엔지니어링","XIS-5000"],[8,"안성-탄산펫2호-009","","Bottle Coder","대주","Videojet 1620 UHS"],[8,"안성-탄산펫2호-010","","Coding Inspector","캠텍",""],[8,"안성-탄산펫2호-011","","Warmer","",""],[8,"안성-탄산펫2호-012","","Shrink Labller","KRONES","Sleevematic TS1"],[8,"안성-탄산펫2호-013","","Steam Tunnel","KRONES","Srinkmat 3000"],[8,"안성-탄산펫2호-014","","Rol-fed Labller","KRONES","Contiroll 720-18-ED"],[8,"안성-탄산펫2호-015","","Label Inspector","캠텍",""],[8,"안성-탄산펫2호-016","","Accum table","KRONES",""],[8,"안성-탄산펫2호-017","","Pad 자동투입기","OCME","UGO Fanuc185"],[8,"안성-탄산펫2호-018","","Shrink Packer","KRONES","Variopac pro PFS-9"],[8,"안성-탄산펫2호-019","","중량검사기","METTLER TOLEDO",""],[8,"안성-탄산펫2호-020","","Box Coder","대주","VJ 1610 DH"],[8,"안성-탄산펫2호-021","","Palletizer","KRONES","MODULPAL PRO 1AD"],[8,"안성-탄산펫2호-022","","Wrapping M/C","ATLANTA","Omega Double"],[8,"안성-탄산펫2호-023","","Auto labeller","",""],[8,"안성-탄산펫2호-024","","Case 단위 바코드 라벨라","DOMINO","M230i"]]};                          // build.py 가 설비 마스터(운영중, 금액 제외)를 넣는다
+  var DEFAULT_TITLE = "🔧 생산설비 전기부분 유지보수 점검";
+
+  var DEFAULT_CATS = [
+    ["전원 공급부", [
+      "메인 전원 공급전압 확인 (R-S-T 상)",
+      "제어전원(24V/220V) 전압 적정 여부",
+      "누전차단기(ELB)·배선용차단기(MCCB) 정상 동작 확인",
+      "전원 커넥터·단자대 체결 및 발열 상태 확인",
+      "무정전전원장치(UPS)/배터리 백업 동작 상태"
+    ]],
+    ["제어반(판넬) 환경관리", [
+      "판넬 에어컨 동작 유무 확인",
+      "전장품 냉각휀 동작 유무 확인",
+      "판넬 내부 온도·습도 적정 여부",
+      "판넬 도어 개스킷·방진 밀폐 상태",
+      "판넬 내부 분진·이물질 퇴적 여부",
+      "열화상 측정 (판넬 내부 발열 이상 유무)"
+    ]],
+    ["센서 및 검출기", [
+      "센서 고정상태 확인 (브라켓·볼트 풀림 여부)",
+      "센서 감도 양호 상태 확인",
+      "센서 렌즈·검출부 오염 여부 (근접·포토센서)",
+      "센서 케이블·커넥터 피복 손상 여부",
+      "리미트 스위치 동작 및 위치 정렬 상태"
+    ]],
+    ["제어기기 (PLC · 서보 · 인버터)", [
+      "PLC 배터리 전압 확인 (메모리 백업)",
+      "서보 드라이버 알람·에러 이력 확인",
+      "인버터 방열판 발열 및 냉각팬 동작 확인",
+      "I/O 카드 및 통신 케이블 접속 상태 확인",
+      "HMI 터치스크린·표시 상태 확인"
+    ]],
+    ["배선 및 접속부", [
+      "동력선 피복 손상·열화 흔적 여부",
+      "압착단자 접속부 발열 여부 (열화상 측정)",
+      "케이블 트레이·덕트 정리 및 결속 상태",
+      "접지선 접속 상태 및 접지저항 확인"
+    ]],
+    ["구동부 (모터 · 액추에이터)", [
+      "전자밸브(솔레노이드) 코일 동작 상태",
+      "모터 브레이크 동작 상태 확인",
+      "모터 베어링 이음·진동·발열 확인",
+      "커플링·벨트 마모 및 정렬 상태"
+    ]]
+  ];
+
+  // ---- 환경 판별 ----
+  var UA = navigator.userAgent || "";
+  var IS_IOS = /iPhone|iPad|iPod/i.test(UA) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var IS_ANDROID = /Android/i.test(UA);
+  var IS_MOBILE = IS_IOS || IS_ANDROID || /Mobi/i.test(UA);
+  // 카카오톡, 네이버, 밴드 등 앱 안에서 열린 화면 (파일 저장이 막히는 경우가 많다)
+  var IN_APP = /KAKAOTALK|NAVER\(inapp|DaumApps|BAND\/|Line\/|Instagram|FBAN|FBAV|everytimeApp|; ?wv\)/i.test(UA) ||
+               (/(iPhone|iPad|iPod).*AppleWebKit/i.test(UA) && !/Safari/i.test(UA));
+
+  function browserName(){
+    var m = /SamsungBrowser\/\d+|EdgA\/\d+|CriOS\/\d+|Firefox\/\d+|Chrome\/\d+|Version\/\d+[\d.]*/.exec(UA);
+    return (IS_ANDROID ? "Android " : IS_IOS ? "iOS " : "") + (m ? m[0].replace("Version/", "Safari ").replace("/", " ") : "?") + (IN_APP ? " (앱 안)" : "");
+  }
+
+  // ---- 작은 도구 ----
+  function $(id){ return document.getElementById(id); }
+  function pad(n){ return n < 10 ? "0" + n : "" + n; }
+  function str(v){ return (v === null || v === undefined) ? "" : String(v); }
+  function todayISO(){ var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+  function parseISO(s){
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+    return m ? new Date(+m[1], +m[2]-1, +m[3]) : null;
+  }
+  function longDate(s){
+    var d = parseISO(s) || new Date();
+    var days = ["일","월","화","수","목","금","토"];
+    return d.getFullYear() + "년 " + (d.getMonth()+1) + "월 " + d.getDate() + "일 (" + days[d.getDay()] + ")";
+  }
+  function dotDate(s){
+    var d = parseISO(s) || new Date();
+    return d.getFullYear() + "." + pad(d.getMonth()+1) + "." + pad(d.getDate());
+  }
+  function nowStamp(){
+    var d = new Date();
+    return d.getFullYear() + "." + pad(d.getMonth()+1) + "." + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+  function hhmm(ts){ var d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function fmtSize(n){ return n > 1048576 ? (n/1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n/1024)) + "KB"; }
+  function el(tag, cls, text){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(text !== undefined) e.textContent = text;
+    return e;
+  }
+
+  var toastTimer = null;
+  function showToast(msg, ms){
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove("show"); }, ms || 2200);
+  }
+
+  // ---- 데이터 모양 ----
+  function newItem(name){ return { name: name, status: null, notes: "", photos: [], time: "" }; }
+  function defaultCategories(){
+    return DEFAULT_CATS.map(function(c){ return { name: c[0], items: c[1].map(newItem) }; });
+  }
+  function freshData(){
+    var d = {
+      schema: 2, title: DEFAULT_TITLE, date: todayISO(),
+      plant: "", lineName: "", process: "", eqName: "", assetId: "", maker: "", model: "", inspector: "",
+      categories: defaultCategories(), savedAt: 0, changedAt: 0, exportedAt: 0
+    };
+    if(SINGLE) d.plant = SINGLE;
+    return d;
+  }
+  var STATUSES = ["ok", "warn", "bad"];
+  var TEXT_FIELDS = ["title","date","plant","lineName","process","eqName","assetId","maker","model","inspector"];
+
+  // v1 은 점검일자를 저장하지 않았다: 마지막 기록 시각에서 추정
+  function guessDate(d){
+    var best = "";
+    (d.categories || []).forEach(function(c){
+      ((c && c.items) || []).forEach(function(it){
+        var m = /^(\d{4})\.(\d{2})\.(\d{2})/.exec(str(it && it.time));
+        if(m){ var iso = m[1] + "-" + m[2] + "-" + m[3]; if(iso > best) best = iso; }
+      });
+    });
+    return best;
+  }
+
+  // 저장본, 백업 파일 모두 이 틀로 맞춘다 (옛 판, 손상된 파일, 남이 만든 파일 방어)
+  function normalize(d){
+    if(!d || typeof d !== "object" || !Array.isArray(d.categories)) return null;
+    var out = freshData();
+    TEXT_FIELDS.forEach(function(k){ if(d[k] !== undefined && d[k] !== null) out[k] = str(d[k]); });
+    if(!out.title) out.title = DEFAULT_TITLE;
+    if(SINGLE && !out.plant) out.plant = SINGLE;
+    if(!parseISO(str(d.date))) out.date = guessDate(d) || todayISO();
+    out.savedAt = +d.savedAt || 0;
+    out.changedAt = +d.changedAt || 0;
+    out.exportedAt = +d.exportedAt || 0;
+    out.categories = d.categories.filter(function(c){ return c && typeof c === "object"; }).map(function(c){
+      return {
+        name: str(c.name) || "이름 없는 카테고리",
+        items: (Array.isArray(c.items) ? c.items : []).filter(function(it){ return it && typeof it === "object"; }).map(function(it){
+          var photos = (Array.isArray(it.photos) ? it.photos : []).map(function(p){
+            if(typeof p === "string") return { src: p, time: "" };
+            return (p && typeof p.src === "string") ? { src: p.src, time: str(p.time) } : null;
+          }).filter(function(p){ return p && /^data:image\//.test(p.src); });   // 외부 주소, 스크립트 주소는 받지 않는다
+          return {
+            name: str(it.name) || "이름 없는 항목",
+            status: STATUSES.indexOf(it.status) >= 0 ? it.status : null,
+            notes: str(it.notes),
+            photos: photos,
+            time: str(it.time)
+          };
+        })
+      };
+    });
+    return out;
+  }
+
+  // ---- 저장소: IndexedDB (사진 수백 MB 가능), 안 되면 localStorage ----
+  var idb = (function(){
+    var dbp = null;
+    function open(){
+      if(dbp) return dbp;
+      dbp = new Promise(function(res, rej){
+        if(!window.indexedDB) return rej(new Error("no indexedDB"));
+        var rq;
+        try{ rq = indexedDB.open(DB_NAME, 1); }catch(e){ return rej(e); }
+        rq.onupgradeneeded = function(){ rq.result.createObjectStore("kv"); };
+        rq.onsuccess = function(){ res(rq.result); };
+        rq.onerror = function(){ rej(rq.error); };
+        rq.onblocked = function(){ rej(new Error("blocked")); };
+      });
+      return dbp;
+    }
+    function get(){
+      return open().then(function(db){
+        return new Promise(function(res, rej){
+          var r = db.transaction("kv", "readonly").objectStore("kv").get(STORAGE_KEY);
+          r.onsuccess = function(){ res(r.result || null); };
+          r.onerror = function(){ rej(r.error); };
+        });
+      });
+    }
+    function put(v){
+      return open().then(function(db){
+        return new Promise(function(res, rej){
+          var tx = db.transaction("kv", "readwrite");
+          tx.objectStore("kv").put(v, STORAGE_KEY);
+          tx.oncomplete = function(){ res(); };
+          tx.onerror = function(){ rej(tx.error); };
+          tx.onabort = function(){ rej(tx.error || new Error("abort")); };
+        });
+      });
+    }
+    return { get: get, put: put };
+  })();
+
+  var data = null;
+  var idbOk = true;
+  var dirty = false, saveTimer = null, lastSaveOk = true;
+
+  function setSaveState(kind){
+    var s = $("saveState");
+    s.classList.toggle("fail", kind === "fail");
+    if(kind === "pending") s.textContent = "저장 중…";
+    else if(kind === "ok") s.textContent = "✓ 이 기기에 자동 저장됨 " + hhmm(data.savedAt || Date.now()) + (idbOk ? "" : " (임시 저장소)");
+    else if(kind === "fail") s.textContent = "⚠ 저장 실패: 저장 공간 부족. '백업 내보내기'를 먼저 해 두세요";
+    else s.textContent = "입력하면 이 기기에 자동 저장됩니다";
+  }
+
+  function loadAll(){
+    var lsVal = null;
+    try{ var raw = localStorage.getItem(STORAGE_KEY); if(raw) lsVal = JSON.parse(raw); }catch(e){}
+    return idb.get().then(null, function(){ idbOk = false; return null; }).then(function(idbVal){
+      var a = normalize(idbVal), b = normalize(lsVal);
+      if(a && b) return b.savedAt > a.savedAt ? b : a;
+      return a || b || freshData();
+    });
+  }
+
+  function flush(){
+    clearTimeout(saveTimer); saveTimer = null;
+    if(!dirty) return Promise.resolve(lastSaveOk);
+    dirty = false;
+    data.savedAt = Date.now();
+    var p = idbOk ? idb.put(data) : Promise.reject(new Error("idb off"));
+    return p.then(function(){
+      try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}   // v1 저장본은 IndexedDB 로 옮겨졌으니 비운다
+      lastSaveOk = true; setSaveState("ok"); return true;
+    }, function(){
+      idbOk = false;
+      try{
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        lastSaveOk = true; setSaveState("ok"); return true;
+      }catch(e){
+        dirty = true; lastSaveOk = false; setSaveState("fail");
+        showToast("저장 공간이 부족합니다. 백업 내보내기 후 사진을 정리해 주세요.", 4000);
+        return false;
+      }
+    });
+  }
+  // content=false: 내보낸 시각처럼 점검 내용이 아닌 값
+  function changed(immediate, content){
+    if(content !== false) data.changedAt = Date.now();
+    dirty = true;
+    setSaveState("pending");
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(flush, immediate ? 30 : 500);
+  }
+
+  // ---- 설비 마스터 색인 ----
+  var CHO = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ";
+  function norm(s){ return str(s).toLowerCase().replace(/[\s\-_.\/()\[\],·~'"]/g, ""); }
+  function cho(s){
+    var out = "", t = norm(s);
+    for(var i = 0; i < t.length; i++){
+      var c = t.charCodeAt(i);
+      out += (c >= 0xAC00 && c <= 0xD7A3) ? CHO.charAt(Math.floor((c - 0xAC00) / 588)) : t.charAt(i);
+    }
+    return out;
+  }
+  // 현장에서 한글로 부르는 설비가 마스터엔 영문인 경우가 많다 (예: 충전기 = FILLER)
+  var SYNONYMS = [
+    ["충전","충진","주입","주주","filler","필러"], ["린서","rinser","세척기","세병기"], ["캡퍼","capper","타전"],
+    ["시머","seamer","밀봉"], ["라벨","labeler","labeller","labeling","labelling"], ["팔레타이저","팔렛타이저","palletizer","적재기"],
+    ["디팔레타이저","디팔렛","depalletizer","depal"], ["컨베이어","컨베어","conveyor","conv"], ["랩핑","래핑","wrapping","wrapper"],
+    ["블로어","블로잉","블로우","blower","blowmold"], ["살균","파스퇴","pasteuri","sterili"], ["카보네이터","carbonator","탄산혼합"],
+    ["믹서","mixer"], ["슈링커","수축","shrink"], ["중량","웨이트","weight"], ["제함","이렉터","erector"],
+    ["압축기","컴프레","콤프레","compressor"], ["냉동기","칠러","chiller"], ["보일러","boiler"], ["패커","팩커","packer","포장기"],
+    ["프린터","잉크젯","printer","inkjet","videojet"], ["검사기","체커","checker","inspection","inspector"]
+  ];
+  function expand(t){
+    var alts = [t];
+    if(t.length >= 2){
+      SYNONYMS.forEach(function(g){
+        if(g.some(function(w){ return t.indexOf(w) >= 0 || w.indexOf(t) === 0; })) g.forEach(function(w){ if(alts.indexOf(w) < 0) alts.push(w); });
+      });
+    }
+    return alts;
+  }
+  function tokenize(q){ return str(q).trim().split(/\s+/).map(norm).filter(Boolean).map(expand); }
+  function hit(alts, hay, choHay){
+    for(var j = 0; j < alts.length; j++){
+      var t = alts[j];
+      if(hay.indexOf(t) >= 0) return true;
+      if(/^[ㄱ-ㅎ]+$/.test(t) && choHay.indexOf(t) >= 0) return true;
+    }
+    return false;
+  }
+  function matchAll(tokens, hay, choHay){
+    for(var i = 0; i < tokens.length; i++) if(!hit(tokens[i], hay, choHay)) return false;
+    return true;
+  }
+  // 첫 검색어가 설비명 앞에 오면 0, 설비명 안에 있으면 1, 그 밖(제작사, 모델 등) 2
+  function rank(alts, r){
+    if(!alts) return 0;
+    var best = 2;
+    alts.forEach(function(t){
+      var cho = /^[ㄱ-ㅎ]+$/.test(t);
+      var name = cho ? r.nameCho : r.nameN;
+      var i = name.indexOf(t);
+      if(i === 0) best = 0; else if(i > 0 && best > 1) best = 1;
+    });
+    return best;
+  }
+
+  var PLANTS = [], LINES = [], EQ = [], EQ_BY_ID = {};
+  var SINGLE = "";
+  if(EQUIP && EQUIP.P){
+    PLANTS = EQUIP.P.slice();
+    if(PLANTS.length === 1) SINGLE = PLANTS[0];
+    LINES = EQUIP.L.map(function(l, i){
+      return { i: i, plant: EQUIP.P[l[0]], line: l[1], hay: norm(EQUIP.P[l[0]] + l[1]), cho: cho(EQUIP.P[l[0]] + l[1]), count: 0 };
+    });
+    EQ = EQUIP.E.map(function(e, k){
+      var L = LINES[e[0]];
+      L.count++;
+      var r = { k: k, li: e[0], plant: L.plant, line: L.line, id: e[1], process: e[2], name: e[3], maker: e[4], model: e[5] };
+      r.nameN = norm(r.name);
+      r.nameCho = cho(r.name);
+      r.hay = norm([r.name, r.maker, r.model, r.id, r.process, r.line].join(" "));
+      r.cho = cho(r.name + " " + r.maker + " " + r.process);
+      EQ_BY_ID[r.id] = r;
+      return r;
+    });
+  }
+
+  function currentLineIndex(){
+    var hits = LINES.filter(function(L){ return L.line === data.lineName && (!data.plant || L.plant === data.plant); });
+    return hits.length === 1 ? hits[0].i : -1;
+  }
+
+  function lineOptions(q){
+    var tokens = tokenize(q);
+    var opts = LINES.filter(function(L){
+      return (!data.plant || L.plant === data.plant) && matchAll(tokens, L.hay, L.cho);
+    }).map(function(L){
+      return { main: data.plant ? L.line : L.plant + " " + L.line, sub: "설비 " + L.count + "대", value: L };
+    });
+    var note = "";
+    if(!LINES.length) note = "설비 목록이 없는 판입니다. 라인을 직접 입력하세요";
+    else if(!opts.length) note = "목록에 없는 라인입니다. 입력한 그대로 기록됩니다";
+    return { opts: opts, note: note };
+  }
+
+  var EQ_LIMIT = 80;
+  function eqOptions(q){
+    var tokens = tokenize(q);
+    var lineIdx = currentLineIndex();
+    if(!EQ.length) return { opts: [], note: "" };
+    if(!tokens.length && lineIdx < 0){
+      return { opts: [], note: data.plant ? "라인을 고르거나 설비 이름을 입력하세요" : "공장, 라인을 고르거나 설비 이름을 입력하세요" };
+    }
+    function search(useLine){
+      var res = [];
+      for(var i = 0; i < EQ.length; i++){
+        var r = EQ[i];
+        if(data.plant && r.plant !== data.plant) continue;
+        if(useLine && lineIdx >= 0 && r.li !== lineIdx) continue;
+        if(!matchAll(tokens, r.hay, r.cho)) continue;
+        res.push({ r: r, s: rank(tokens[0], r) });
+      }
+      res.sort(function(a, b){ return a.s - b.s || a.r.k - b.r.k; });
+      return res;
+    }
+    var res = search(true), note = "";
+    if(!res.length && tokens.length && lineIdx >= 0){
+      res = search(false);
+      if(res.length) note = "선택한 라인에 없어서 " + (data.plant || "전체") + " 공장 전체에서 찾았습니다";
+    }
+    var total = res.length;
+    var showLine = lineIdx < 0 || note;
+    var opts = res.slice(0, EQ_LIMIT).map(function(x){
+      var r = x.r;
+      var sub = [r.maker, r.model].filter(Boolean).join(" ");
+      sub = [sub, r.id].filter(Boolean).join(" | ");
+      if(showLine) sub += " | " + (data.plant ? "" : r.plant + " ") + r.line;
+      return { main: r.name, sub: sub, value: r };
+    });
+    if(!total) note = "마스터에 없는 설비입니다. 입력한 이름 그대로 기록됩니다";
+    else if(total > EQ_LIMIT) note = (note ? note + ". " : "") + "외 " + (total - EQ_LIMIT) + "건 더 있음. 검색어를 더 입력하세요";
+    return { opts: opts, note: note };
+  }
+
+  // 입력칸 + 아래 목록 (입력하면 바로 아래에 후보, 누르면 전체 목록)
+  var combos = [];
+  function Combo(wrap, input, provider, onPick){
+    var list = wrap.querySelector(".combo-list");
+    var items = [], hl = -1;
+    function open(q){
+      var r = provider(q);
+      items = r.opts; hl = -1;
+      list.innerHTML = "";
+      r.opts.forEach(function(o, i){
+        var d = el("div", "combo-opt");
+        d.setAttribute("role", "option");
+        d.appendChild(el("div", "o-main", o.main));
+        if(o.sub) d.appendChild(el("div", "o-sub", o.sub));
+        d.addEventListener("click", function(){ pick(i); });
+        list.appendChild(d);
+      });
+      if(r.note) list.appendChild(el("div", "combo-note", r.note));
+      list.classList.toggle("show", !!(r.opts.length || r.note));
+      list.scrollTop = 0;
+    }
+    function close(){ list.classList.remove("show"); hl = -1; }
+    function pick(i){
+      var o = items[i];
+      close();
+      if(o){ onPick(o.value); input.blur(); }
+    }
+    function highlight(n){
+      var nodes = list.querySelectorAll(".combo-opt");
+      if(!nodes.length) return;
+      hl = (n + nodes.length) % nodes.length;
+      for(var i = 0; i < nodes.length; i++) nodes[i].classList.toggle("hl", i === hl);
+      nodes[hl].scrollIntoView({ block: "nearest" });
+    }
+    input.addEventListener("focus", function(){ open(""); });
+    input.addEventListener("input", function(){ open(input.value); });
+    input.addEventListener("keydown", function(e){
+      if(e.key === "ArrowDown"){ e.preventDefault(); if(!list.classList.contains("show")) open(input.value); highlight(hl + 1); }
+      else if(e.key === "ArrowUp"){ e.preventDefault(); highlight(hl - 1); }
+      else if(e.key === "Enter"){ if(hl >= 0){ e.preventDefault(); pick(hl); } else { close(); input.blur(); } }
+      else if(e.key === "Escape"){ close(); }
+    });
+    list.addEventListener("mousedown", function(e){ e.preventDefault(); });   // PC: 목록 누를 때 입력칸 초점 유지
+    wrap.addEventListener("focusout", function(){
+      setTimeout(function(){ if(!wrap.contains(document.activeElement)) close(); }, 250);
+    });
+    document.addEventListener("click", function(e){ if(!wrap.contains(e.target)) close(); }, true);
+    var api = { open: open, close: close };
+    combos.push(api);
+    return api;
+  }
+  function closeCombos(){ combos.forEach(function(c){ c.close(); }); }
+
+  // ---- 머리말 (제목, 날짜, 공장, 라인, 설비, 점검자) ----
+  var mainTitleInput = $("mainTitle"), dateInput = $("inspDate"), plantSel = $("plantSel");
+  var lineInput = $("lineName"), eqInput = $("eqName"), inspectorInput = $("inspector");
+
+  function updateTitleDisplay(){
+    var t = data.title || DEFAULT_TITLE;
+    document.title = (t.replace(/^[^A-Za-z0-9가-힣]+/, "") || t) + " (모바일 등록)";
+    $("printMainTitle").textContent = t;
+  }
+  function lineWithProcess(){
+    return data.lineName + (data.process ? (data.lineName ? " / " : "") + data.process : "");
+  }
+  function updatePrintMeta(){
+    $("printDate").textContent = longDate(data.date);
+    $("printPlant").textContent = data.plant || "-";
+    $("printLineName").textContent = lineWithProcess() || "-";
+    $("printEqName").textContent = data.eqName || "-";
+    $("printAssetId").textContent = data.assetId || "-";
+    $("printMaker").textContent = [data.maker, data.model].filter(Boolean).join(" ") || "-";
+    $("printInspector").textContent = data.inspector || "-";
+  }
+  function updateEqInfo(){
+    var box = $("eqInfo");
+    box.innerHTML = "";
+    if(data.assetId){
+      box.appendChild(el("span", "linked", "🔗 " + data.assetId));
+      var rest = [[data.maker, data.model].filter(Boolean).join(" "), data.process ? "공정: " + data.process : ""].filter(Boolean).join(" | ");
+      if(rest) box.appendChild(document.createTextNode(" | " + rest));
+    }else if(data.eqName){
+      box.textContent = "직접 입력한 설비 (설비 마스터와 연결 안 됨)";
+    }else if(EQ.length){
+      box.textContent = (SINGLE ? "" : "공장, ") + "라인을 고르면 설비 목록이 뜹니다. 이름, 제작사, 모델, 초성(예: ㄹㅍ)으로도 찾습니다";
+    }
+  }
+  function fillPlantSelect(){
+    plantSel.innerHTML = "";
+    var o = el("option", "", PLANTS.length ? "공장 (전체)" : "공장");
+    o.value = "";
+    if(!(SINGLE && data.plant === SINGLE)) plantSel.appendChild(o);
+    var list = PLANTS.slice();
+    if(data.plant && list.indexOf(data.plant) < 0) list.push(data.plant);
+    list.forEach(function(p){ var op = el("option", "", p); op.value = p; plantSel.appendChild(op); });
+    plantSel.value = data.plant;
+    plantSel.disabled = !!SINGLE && data.plant === SINGLE;   // 공장 전용판은 공장 고정
+  }
+  function syncHeader(){
+    mainTitleInput.value = data.title || DEFAULT_TITLE;
+    dateInput.value = data.date;
+    $("dateText").textContent = longDate(data.date);
+    fillPlantSelect();
+    lineInput.value = data.lineName;
+    eqInput.value = data.eqName;
+    inspectorInput.value = data.inspector;
+    updateEqInfo(); updateTitleDisplay(); updatePrintMeta();
+  }
+  function clearEqLink(alsoName){
+    data.assetId = ""; data.maker = ""; data.model = ""; data.process = "";
+    if(alsoName){ data.eqName = ""; eqInput.value = ""; }
+  }
+
+  function bindHeader(){
+    mainTitleInput.addEventListener("input", function(){ data.title = mainTitleInput.value; changed(); updateTitleDisplay(); });
+    mainTitleInput.addEventListener("blur", function(){
+      if(!mainTitleInput.value.trim()){
+        mainTitleInput.value = DEFAULT_TITLE; data.title = DEFAULT_TITLE; changed(); updateTitleDisplay();
+      }
+    });
+    dateInput.addEventListener("change", function(){
+      data.date = parseISO(dateInput.value) ? dateInput.value : todayISO();
+      dateInput.value = data.date;
+      $("dateText").textContent = longDate(data.date);
+      updatePrintMeta(); changed(true);
+    });
+    dateInput.addEventListener("click", function(){ try{ if(dateInput.showPicker) dateInput.showPicker(); }catch(e){} });
+
+    plantSel.addEventListener("change", function(){
+      data.plant = plantSel.value;
+      var linked = EQ_BY_ID[data.assetId];
+      if(data.plant && linked && linked.plant !== data.plant){ clearEqLink(true); data.lineName = ""; lineInput.value = ""; }
+      else if(data.plant && data.lineName && LINES.some(function(L){ return L.line === data.lineName; }) &&
+              !LINES.some(function(L){ return L.line === data.lineName && L.plant === data.plant; })){
+        data.lineName = ""; lineInput.value = "";
+      }
+      updateEqInfo(); updatePrintMeta(); changed(true);
+    });
+
+    var eqCombo = Combo($("eqCombo"), eqInput, eqOptions, function(r){
+      data.plant = r.plant; data.lineName = r.line; data.process = r.process; data.eqName = r.name;
+      data.assetId = r.id; data.maker = r.maker; data.model = r.model;
+      plantSel.value = data.plant; lineInput.value = data.lineName; eqInput.value = data.eqName;
+      updateEqInfo(); updatePrintMeta(); changed(true);
+      showToast("설비를 골랐습니다: " + r.name);
+    });
+    Combo($("lineCombo"), lineInput, lineOptions, function(L){
+      var linked = EQ_BY_ID[data.assetId];
+      data.plant = L.plant; data.lineName = L.line;
+      plantSel.value = data.plant; lineInput.value = data.lineName;
+      if(linked && linked.li !== L.i) clearEqLink(true);
+      updateEqInfo(); updatePrintMeta(); changed(true);
+      if(!data.eqName) setTimeout(function(){ eqCombo.open(""); }, 0);   // 라인을 고르면 그 라인 설비 목록을 바로 펼친다
+    });
+
+    lineInput.addEventListener("input", function(){
+      data.lineName = lineInput.value;
+      if(data.assetId) clearEqLink(false);
+      updateEqInfo(); updatePrintMeta(); changed();
+    });
+    eqInput.addEventListener("input", function(){
+      data.eqName = eqInput.value;
+      if(data.assetId) clearEqLink(false);
+      updateEqInfo(); updatePrintMeta(); changed();
+    });
+    inspectorInput.addEventListener("input", function(){ data.inspector = inspectorInput.value; updatePrintMeta(); changed(); });
+  }
+
+  // ---- 음성 입력 ----
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var activeRec = null, activeRecBtn = null;
+  function startVoice(btn, onText){
+    if(!SR){
+      showToast("이 화면에서는 음성 인식을 쓸 수 없습니다. 메모칸을 누르고 키보드의 🎤 음성 입력을 이용하세요.", 3500);
+      return;
+    }
+    if(activeRec){
+      var same = activeRecBtn === btn;
+      try{ activeRec.stop(); }catch(e){}
+      if(!same) showToast("앞의 음성 입력을 끝냈습니다. 다시 눌러 주세요.");
+      return;
+    }
+    var rec = new SR();
+    rec.lang = "ko-KR"; rec.interimResults = false; rec.maxAlternatives = 1;
+    activeRec = rec; activeRecBtn = btn;
+    btn.classList.add("recording");
+    btn.textContent = "🎙️ 듣는 중 (누르면 끝)";
+    function reset(){ btn.classList.remove("recording"); btn.textContent = "🎤 음성"; activeRec = null; activeRecBtn = null; }
+    rec.onresult = function(e){ onText(e.results[0][0].transcript); };
+    rec.onerror = function(e){
+      var msg = {
+        "not-allowed": "마이크 권한을 허용해 주세요. 막혀 있으면 키보드의 🎤 음성 입력을 이용하세요.",
+        "service-not-allowed": "이 화면에서는 음성 인식이 막혀 있습니다. 키보드의 🎤 음성 입력을 이용하세요.",
+        "no-speech": "음성이 들리지 않았습니다.",
+        "network": "음성 인식에 인터넷 연결이 필요합니다.",
+        "audio-capture": "마이크를 찾을 수 없습니다.",
+        "aborted": ""
+      }[e.error];
+      if(msg !== "") showToast(msg || ("음성 인식 오류: " + e.error), 3500);
+    };
+    rec.onend = reset;
+    try{ rec.start(); }catch(err){ reset(); showToast("음성 인식을 시작하지 못했습니다."); }
+  }
+
+  // ---- 사진: 긴 변 1600px JPEG 로 줄여 저장 (원본 3~8MB → 약 0.3MB) ----
+  function compressImage(file){
+    return new Promise(function(res, rej){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var w = img.naturalWidth, h = img.naturalHeight, s = Math.min(1, 1600 / Math.max(w, h));
+          var c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+          var ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          res(c.toDataURL("image/jpeg", 0.75));
+        }catch(e){ URL.revokeObjectURL(url); rej(e); }
+      };
+      img.onerror = function(){ URL.revokeObjectURL(url); rej(new Error("decode")); };
+      img.src = url;
+    });
+  }
+
+  // ---- 그리기 ----
+  var container = $("categoryContainer");
+  var itemEls = new WeakMap(), catEls = new WeakMap(), collapsed = new WeakSet();
+  var filter = "";
+
+  function statusLabel(s){
+    if(s === "ok") return "정상";
+    if(s === "warn") return "주의";
+    if(s === "bad") return "이상";
+    return "미점검";
+  }
+
+  function render(){
+    container.innerHTML = "";
+    data.categories.forEach(function(cat){ container.appendChild(buildCategory(cat)); });
+    updateCounts();
+  }
+
+  function refreshItem(cat, item){
+    var old = itemEls.get(item);
+    if(old && old.parentNode) old.parentNode.replaceChild(buildItem(cat, item), old);
+    updateCounts();
+  }
+
+  function buildCategory(cat){
+    var catEl = el("div", "category" + (collapsed.has(cat) ? " collapsed" : ""));
+    catEls.set(cat, catEl);
+
+    var head = el("div", "category-head");
+    var h2 = el("h2");
+    h2.appendChild(el("span", "cat-caret", "▼"));
+    h2.appendChild(document.createTextNode(cat.name));
+    head.appendChild(h2);
+    head.appendChild(el("span", "cat-prog", "0/0"));
+    var delCatBtn = el("button", "del-cat-btn", "🗑 삭제");
+    delCatBtn.type = "button";
+    delCatBtn.addEventListener("click", function(e){
+      e.stopPropagation();
+      if(confirm('"' + cat.name + '" 카테고리 전체를 삭제할까요? 포함된 항목 ' + cat.items.length + '개가 모두 삭제됩니다.')){
+        var i = data.categories.indexOf(cat);
+        if(i >= 0) data.categories.splice(i, 1);
+        if(catEl.parentNode) catEl.parentNode.removeChild(catEl);
+        updateCounts(); changed(true);
+      }
+    });
+    head.appendChild(delCatBtn);
+    head.addEventListener("click", function(){
+      if(collapsed.has(cat)) collapsed.delete(cat); else collapsed.add(cat);
+      catEl.classList.toggle("collapsed", collapsed.has(cat));
+    });
+    catEl.appendChild(head);
+
+    var body = el("div", "category-body");
+    cat.items.forEach(function(item){ body.appendChild(buildItem(cat, item)); });
+
+    var addForm = el("div", "add-item-form");
+    var addInput = el("input");
+    addInput.type = "text"; addInput.placeholder = "+ 새 점검 항목명 입력 후 추가"; addInput.autocomplete = "off";
+    var addBtn = el("button", "", "추가");
+    addBtn.type = "button";
+    function submitAddItem(){
+      var v = addInput.value.trim();
+      if(!v) return;
+      var it = newItem(v);
+      cat.items.push(it);
+      body.insertBefore(buildItem(cat, it), addForm);
+      addInput.value = "";
+      updateCounts(); changed(true);
+    }
+    addBtn.addEventListener("click", submitAddItem);
+    addInput.addEventListener("keydown", function(e){
+      if(e.key === "Enter" && !e.isComposing){ e.preventDefault(); submitAddItem(); }
+    });
+    addForm.appendChild(addInput); addForm.appendChild(addBtn);
+    body.appendChild(addForm);
+
+    catEl.appendChild(body);
+    return catEl;
+  }
+
+  function autoGrow(t){ t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight + 2, 320) + "px"; }
+
+  function buildItem(cat, item){
+    var itEl = el("div", "item");
+    itEl.setAttribute("data-status", item.status || "none");
+    itemEls.set(item, itEl);
+
+    var top = el("div", "item-top");
+    var nameWrap = el("div");
+    nameWrap.appendChild(el("div", "item-name", item.name));
+    var tLabel = item.status ? ("최종 점검: " + item.time) : ("미점검" + (item.time ? " (최종 기록 " + item.time + ")" : ""));
+    nameWrap.appendChild(el("div", "item-time", tLabel));
+    var ps = el("span", "print-status " + (item.status || "none"), statusLabel(item.status));
+    var delBtn = el("button", "item-del", "✕");
+    delBtn.type = "button";
+    delBtn.setAttribute("aria-label", "항목 삭제");
+    delBtn.addEventListener("click", function(){
+      if(confirm('"' + item.name + '" 항목을 삭제할까요?')){
+        var i = cat.items.indexOf(item);
+        if(i >= 0) cat.items.splice(i, 1);
+        if(itEl.parentNode) itEl.parentNode.removeChild(itEl);
+        updateCounts(); changed(true);
+      }
+    });
+    top.appendChild(nameWrap); top.appendChild(ps); top.appendChild(delBtn);
+    itEl.appendChild(top);
+
+    var statusGroup = el("div", "status-group");
+    [["ok","정상"],["warn","주의"],["bad","이상"]].forEach(function(pair){
+      var b = el("button", "status-btn " + pair[0] + (item.status === pair[0] ? " active" : ""), pair[1]);
+      b.type = "button";
+      b.addEventListener("click", function(){
+        item.status = (item.status === pair[0]) ? null : pair[0];
+        if(item.status) item.time = nowStamp();
+        refreshItem(cat, item); changed(true);
+      });
+      statusGroup.appendChild(b);
+    });
+    itEl.appendChild(statusGroup);
+
+    // 촬영(카메라 바로), 앨범(여러 장), 음성
+    var actionRow = el("div", "action-row");
+    var camInput = el("input"); camInput.type = "file"; camInput.accept = "image/*"; camInput.setAttribute("capture", "environment");
+    var albInput = el("input"); albInput.type = "file"; albInput.accept = "image/*"; albInput.multiple = true;
+    var camBtn = el("button", "action-btn", "📷 촬영"); camBtn.type = "button";
+    var albBtn = el("button", "action-btn", "🖼 앨범"); albBtn.type = "button";
+    camBtn.addEventListener("click", function(){ camInput.click(); });
+    albBtn.addEventListener("click", function(){ albInput.click(); });
+    function onFiles(inp){
+      var files = Array.prototype.slice.call(inp.files || []);
+      inp.value = "";
+      if(!files.length) return;
+      showToast("사진 정리 중… (" + files.length + "장)", 4000);
+      var added = 0, failed = 0, chain = Promise.resolve();
+      files.forEach(function(f){
+        chain = chain.then(function(){
+          return compressImage(f).then(function(src){ item.photos.push({ src: src, time: nowStamp() }); added++; },
+                                       function(){ failed++; });
+        });
+      });
+      chain.then(function(){
+        if(added){ item.time = nowStamp(); refreshItem(cat, item); changed(true); }
+        showToast(failed ? ("사진 " + added + "장 추가, " + failed + "장은 읽지 못했습니다 (HEIC 등)") : ("사진 " + added + "장 추가"));
+      });
+    }
+    camInput.addEventListener("change", function(){ onFiles(camInput); });
+    albInput.addEventListener("change", function(){ onFiles(albInput); });
+
+    var voiceBtn = el("button", "action-btn", "🎤 음성"); voiceBtn.type = "button";
+    voiceBtn.addEventListener("click", function(){
+      startVoice(voiceBtn, function(text){
+        item.notes = item.notes ? (item.notes + " " + text) : text;
+        item.time = nowStamp();
+        refreshItem(cat, item); changed(true);
+      });
+    });
+    actionRow.appendChild(camBtn); actionRow.appendChild(albBtn); actionRow.appendChild(voiceBtn);
+    itEl.appendChild(actionRow);
+    itEl.appendChild(camInput); itEl.appendChild(albInput);
+
+    var notesEl = el("textarea", "notes");
+    notesEl.rows = 1;
+    notesEl.placeholder = "점검 내용 메모 (음성 입력 또는 직접 입력)";
+    notesEl.value = item.notes || "";
+    var notesPrint = el("div", "notes-print", item.notes || "");
+    notesEl.addEventListener("input", function(){
+      item.notes = notesEl.value;
+      notesPrint.textContent = item.notes;
+      autoGrow(notesEl);
+      changed();
+    });
+    itEl.appendChild(notesEl);
+    itEl.appendChild(notesPrint);
+    if(item.notes) setTimeout(function(){ autoGrow(notesEl); }, 0);
+
+    if(item.photos.length){
+      var strip = el("div", "photo-strip");
+      item.photos.forEach(function(p){
+        var thumb = el("div", "photo-thumb");
+        var img = el("img");
+        img.src = p.src; img.alt = "점검 사진"; img.loading = "lazy";
+        img.addEventListener("click", function(){
+          $("modalImg").src = p.src;
+          $("photoModal").classList.add("show");
+        });
+        var rm = el("button", "rm", "✕");
+        rm.type = "button";
+        rm.setAttribute("aria-label", "사진 삭제");
+        rm.addEventListener("click", function(){
+          if(!confirm("이 사진을 삭제할까요?")) return;
+          var i = item.photos.indexOf(p);
+          if(i >= 0) item.photos.splice(i, 1);
+          refreshItem(cat, item); changed(true);
+        });
+        thumb.appendChild(img); thumb.appendChild(rm);
+        strip.appendChild(thumb);
+      });
+      itEl.appendChild(strip);
+    }
+    return itEl;
+  }
+
+  function counts(){
+    var c = { total: 0, ok: 0, warn: 0, bad: 0, none: 0, photos: 0 };
+    data.categories.forEach(function(cat){
+      cat.items.forEach(function(it){
+        c.total++;
+        if(it.status) c[it.status]++; else c.none++;
+        c.photos += it.photos.length;
+      });
+    });
+    return c;
+  }
+  function updateCounts(){
+    var c = counts();
+    data.categories.forEach(function(cat){
+      var ce = catEls.get(cat);
+      if(!ce) return;
+      var done = cat.items.filter(function(it){ return !!it.status; }).length;
+      ce.querySelector(".cat-prog").textContent = done + "/" + cat.items.length;
+    });
+    $("cntTotal").textContent = c.total;
+    $("cntOk").textContent = c.ok;
+    $("cntWarn").textContent = c.warn;
+    $("cntBad").textContent = c.bad;
+    $("cntNone").textContent = c.none;
+    $("printSummary").textContent = "정상 " + c.ok + ", 주의 " + c.warn + ", 이상 " + c.bad + ", 미점검 " + c.none + " (전체 " + c.total + ")";
+    updateFilterNote(c);
+  }
+
+  // ---- 상태별 보기 ----
+  function setFilter(f){
+    filter = f;
+    if(f) container.setAttribute("data-filter", f); else container.removeAttribute("data-filter");
+    var chips = document.querySelectorAll(".summary-chip");
+    for(var i = 0; i < chips.length; i++) chips[i].classList.toggle("on", !!f && chips[i].getAttribute("data-f") === f);
+    updateFilterNote(counts());
+    var hdr = document.querySelector("header").offsetHeight;
+    if(f && window.pageYOffset > hdr) window.scrollTo(0, hdr);
+  }
+  function updateFilterNote(c){
+    var n = $("filterNote");
+    if(!filter){ n.classList.remove("show"); return; }
+    n.textContent = "'" + statusLabel(filter === "none" ? null : filter) + "' " + c[filter] + "개만 보는 중입니다. '전체'를 누르면 모두 보입니다.";
+    n.classList.add("show");
+  }
+
+  // ---- 시트 (휴대폰 아래에서 올라오는 선택 창) ----
+  function showSheet(cfg){
+    $("sheetTitle").textContent = cfg.title;
+    $("sheetDesc").textContent = cfg.desc || "";
+    var w = $("sheetWarn");
+    w.textContent = cfg.warn || "";
+    w.classList.toggle("show", !!cfg.warn);
+    var box = $("sheetOpts");
+    box.innerHTML = "";
+    cfg.options.concat([{ label: "닫기", cls: "cancel", run: function(){} }]).forEach(function(o){
+      var b = el("button", o.cls || "", o.label);
+      b.type = "button";
+      if(o.sub) b.appendChild(el("small", "", o.sub));
+      b.addEventListener("click", function(){ hideSheet(); o.run(); });   // 공유, 저장은 이 누름 안에서 바로 실행돼야 막히지 않는다
+      box.appendChild(b);
+    });
+    $("sheet").classList.add("show");
+  }
+  function hideSheet(){ $("sheet").classList.remove("show"); }
+  $("sheet").addEventListener("click", function(e){ if(e.target === this) hideSheet(); });
+
+  // ---- 내보내기 ----
+  function baseFileName(){
+    var namePart = [data.plant, data.lineName, data.eqName].filter(Boolean).join("_").replace(/[^\w가-힣\-]/g, "").slice(0, 60);
+    var d = new Date();
+    return "생산설비전기유지보수점검_" + (namePart ? namePart + "_" : "") + (data.date || todayISO()).replace(/-/g, "") + "_" + pad(d.getHours()) + pad(d.getMinutes());
+  }
+  function cell(v){
+    var s = str(v).replace(/\r?\n/g, " ");
+    if(/^[=+\-@]/.test(s)) s = "'" + s;          // 엑셀이 수식으로 읽지 않게
+    return s;
+  }
+  function csvEscape(v){
+    var s = cell(v);
+    return /[",]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+  function tableRows(){
+    // 앞 11열은 v1 과 같은 순서 (예전 CSV 와 이어 붙일 수 있게), 새 열은 맨 뒤
+    var rows = [["점검제목","설비명","라인/공정","점검자","점검일자","카테고리","점검항목","상태","최종점검시각","메모","사진개수","공장","Asset ID","제작사","모델명"]];
+    data.categories.forEach(function(cat){
+      cat.items.forEach(function(item){
+        rows.push([data.title || DEFAULT_TITLE, data.eqName, lineWithProcess(), data.inspector, dotDate(data.date),
+                   cat.name, item.name, statusLabel(item.status), item.time, item.notes, item.photos.length,
+                   data.plant, data.assetId, data.maker, data.model]);
+      });
+    });
+    return rows;
+  }
+  function buildCsv(){
+    var rows = tableRows();
+    var text = rows.map(function(r){ return r.map(csvEscape).join(","); }).join("\r\n");
+    var tsv = rows.map(function(r){ return r.map(function(v){ return cell(v).replace(/\t/g, " "); }).join("\t"); }).join("\n");
+    var name = baseFileName() + ".csv";
+    return { kind: "csv", name: name, mime: "text/csv", blob: new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" }), copy: tsv };
+  }
+  // ---- 백업 PDF ----
+  // 안드로이드 크롬은 .json 공유를 막고, Webex 는 .txt 를 첨부로 받지 않는다 → 백업을 PDF 로.
+  // 보이는 면은 점검 결과표(그림), 안에는 전체 데이터(사진 포함)를 넣어 '백업 불러오기'로 그대로 복원한다.
+  // 모두 동기 처리: 누른 그 순간 공유 창을 열어야 브라우저가 막지 않는다.
+  var PDF_MARK_BEGIN = "INSPECTION_BACKUP_B64:", PDF_MARK_END = ":INSPECTION_BACKUP_END";
+  function utf8B64(text){
+    var bytes = new TextEncoder().encode(text), bin = "", CH = 0x8000;
+    for(var i = 0; i < bytes.length; i += CH) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    return btoa(bin);
+  }
+  function b64Bytes(b64){
+    var bin = atob(b64), a = new Uint8Array(bin.length);
+    for(var i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return a;
+  }
+
+  function renderReportPages(){
+    var W = 1240, H = 1754, M = 80, BOTTOM = H - 110;
+    var pages = [], c = null, g = null, y = 0;
+    var FONT = '"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR","Noto Sans CJK KR",sans-serif';
+    function font(px, bold){ g.font = (bold ? "bold " : "") + px + "px " + FONT; }
+    function newPage(){
+      c = document.createElement("canvas"); c.width = W; c.height = H;
+      g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, W, H); g.textBaseline = "top";
+      pages.push(c); y = M;
+    }
+    function need(h){ if(y + h > BOTTOM) newPage(); }
+    function wrap(text, maxW){
+      var out = [];
+      str(text).split(/\n/).forEach(function(para){
+        var line = "";
+        for(var i = 0; i < para.length; i++){
+          var t = line + para.charAt(i);
+          if(g.measureText(t).width > maxW && line){ out.push(line); line = para.charAt(i); } else line = t;
+        }
+        out.push(line);
+      });
+      return out;
+    }
+    var COLORS = { ok: ["#0D9488", "#ECFDF5"], warn: ["#B45309", "#FFFBEB"], bad: ["#DC2626", "#FEF2F2"], none: ["#64748B", "#F1F5F9"] };
+    var cnt = counts();
+    newPage();
+    font(40, true); g.fillStyle = "#1A2B4A";
+    wrap(data.title || DEFAULT_TITLE, W - 2 * M).forEach(function(l){ g.fillText(l, M, y); y += 54; });
+    y += 6;
+    font(24); g.fillStyle = "#1F2937";
+    [
+      "점검일자 " + longDate(data.date) + "    점검자 " + (data.inspector || "-"),
+      "공장 " + (data.plant || "-") + "    라인/공정 " + (lineWithProcess() || "-"),
+      "설비 " + (data.eqName || "-") + (data.assetId ? "    Asset ID " + data.assetId : ""),
+      ([data.maker, data.model].filter(Boolean).join(" ") ? "제작사/모델 " + [data.maker, data.model].filter(Boolean).join(" ") : "")
+    ].filter(Boolean).forEach(function(t){ wrap(t, W - 2 * M).forEach(function(l){ g.fillText(l, M, y); y += 36; }); });
+    y += 8;
+    var chips = [["정상", cnt.ok, "ok"], ["주의", cnt.warn, "warn"], ["이상", cnt.bad, "bad"], ["미점검", cnt.none, "none"]];
+    var cw = (W - 2 * M - 30) / 4;
+    chips.forEach(function(ch, i){
+      var x = M + i * (cw + 10), col = COLORS[ch[2]];
+      g.fillStyle = col[1]; g.fillRect(x, y, cw, 70);
+      g.fillStyle = col[0]; font(34, true); g.fillText(String(ch[1]), x + 18, y + 8);
+      font(22, true); g.fillText(ch[0], x + 18 + g.measureText(String(ch[1])).width + 60, y + 22);
+    });
+    y += 84;
+    font(20); g.fillStyle = "#64748B";
+    g.fillText("전체 " + cnt.total + "항목, 사진 " + cnt.photos + "장", M, y); y += 36;
+    g.fillStyle = "#1A2B4A"; g.fillRect(M, y, W - 2 * M, 3); y += 20;
+
+    data.categories.forEach(function(cat){
+      need(110);
+      var done = cat.items.filter(function(it){ return !!it.status; }).length;
+      g.fillStyle = "#1A2B4A"; g.fillRect(M, y, W - 2 * M, 50);
+      g.fillStyle = "#fff"; font(25, true); g.fillText(cat.name, M + 16, y + 11);
+      font(22); var pr = done + "/" + cat.items.length; g.fillText(pr, W - M - 16 - g.measureText(pr).width, y + 13);
+      y += 62;
+      cat.items.forEach(function(it){
+        font(24, true);
+        var nameLines = wrap(it.name, W - 2 * M - 170);
+        font(22);
+        var noteLines = it.notes ? wrap("메모: " + it.notes, W - 2 * M - 20) : [];
+        var extra = it.photos.length ? 1 : 0;
+        var h = nameLines.length * 34 + noteLines.length * 31 + extra * 30 + 18;
+        need(Math.min(h, 400));
+        var col = COLORS[it.status || "none"], label = statusLabel(it.status);
+        g.fillStyle = col[1]; g.fillRect(W - M - 130, y, 130, 40);
+        g.fillStyle = col[0]; font(22, true); g.fillText(label, W - M - 65 - g.measureText(label).width / 2, y + 8);
+        g.fillStyle = "#1F2937"; font(24, true);
+        var badgeBottom = y + 46;
+        nameLines.forEach(function(l){ need(34); g.fillText(l, M, y); y += 34; });
+        if(y < badgeBottom) y = badgeBottom;              // 메모 줄이 상태 표시와 겹치지 않게
+        font(22); g.fillStyle = "#374151";
+        noteLines.forEach(function(l){ need(31); g.fillText(l, M + 20, y); y += 31; });
+        if(extra){ g.fillStyle = "#64748B"; font(20); g.fillText("사진 " + it.photos.length + "장" + (it.time ? "    기록 " + it.time : ""), M + 20, y); y += 30; }
+        else if(it.time && it.status){ g.fillStyle = "#64748B"; font(20); g.fillText("기록 " + it.time, M + 20, y); y += 30; }
+        y += 8;
+        g.fillStyle = "#E2E8F0"; g.fillRect(M, y, W - 2 * M, 2); y += 12;
+      });
+      y += 10;
+    });
+
+    var made = nowStamp();
+    pages.forEach(function(pc, i){
+      var pg2 = pc.getContext("2d");
+      pg2.textBaseline = "top"; pg2.fillStyle = "#94A3B8"; pg2.font = "18px " + FONT;
+      pg2.fillText("이 PDF를 점검 툴의 '백업 불러오기'로 열면 사진까지 복원됩니다.   생성 " + made + "   v" + APP_VERSION, M, H - 70);
+      var pn = (i + 1) + " / " + pages.length;
+      pg2.fillText(pn, W - M - pg2.measureText(pn).width, H - 70);
+    });
+    return pages.map(function(pc){ return { w: W, h: H, jpg: b64Bytes(pc.toDataURL("image/jpeg", 0.85).split(",")[1]) }; });
+  }
+
+  function buildPdf(pages, dataB64){
+    var parts = [], len = 0, offs = [];
+    function add(x){ parts.push(x); len += x.length; }       // 문자열은 ASCII 만 쓴다 (글자 수 = 바이트 수)
+    var n = pages.length, dataId = 3 + 3 * n;
+    function begin(id){ offs[id] = len; add(id + " 0 obj\n"); }
+    add("%PDF-1.4\n"); add(new Uint8Array([37, 226, 227, 207, 211, 10]));
+    begin(1); add("<< /Type /Catalog /Pages 2 0 R >>\nendobj\n");
+    var kids = [];
+    for(var i = 0; i < n; i++) kids.push((3 + 3 * i) + " 0 R");
+    begin(2); add("<< /Type /Pages /Kids [" + kids.join(" ") + "] /Count " + n + " >>\nendobj\n");
+    pages.forEach(function(pg, i){
+      var pid = 3 + 3 * i, cid = pid + 1, iid = pid + 2;
+      var content = "q 595.28 0 0 841.89 0 0 cm /Im0 Do Q";
+      begin(pid); add("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 " + iid + " 0 R >> >> /Contents " + cid + " 0 R >>\nendobj\n");
+      begin(cid); add("<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream\nendobj\n");
+      begin(iid); add("<< /Type /XObject /Subtype /Image /Width " + pg.w + " /Height " + pg.h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + pg.jpg.length + " >>\nstream\n");
+      add(pg.jpg); add("\nendstream\nendobj\n");
+    });
+    var payload = PDF_MARK_BEGIN + dataB64 + PDF_MARK_END;
+    begin(dataId); add("<< /Length " + payload.length + " >>\nstream\n"); add(payload); add("\nendstream\nendobj\n");
+    var xref = len, total = dataId + 1;
+    var x = "xref\n0 " + total + "\n0000000000 65535 f \n";
+    for(var k = 1; k < total; k++) x += ("0000000000" + offs[k]).slice(-10) + " 00000 n \n";
+    add(x + "trailer\n<< /Size " + total + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
+    return new Blob(parts, { type: "application/pdf" });
+  }
+
+  function buildJson(){
+    var payload = { type: "inspection", app: "생산설비 전기부분 유지보수 점검", appVersion: APP_VERSION };
+    Object.keys(data).forEach(function(k){ payload[k] = data[k]; });
+    payload.backupAt = new Date().toISOString();
+    var blob = buildPdf(renderReportPages(), utf8B64(JSON.stringify(payload)));
+    return { kind: "json", name: baseFileName() + "_점검결과백업.pdf", mime: "application/pdf", blob: blob };
+  }
+
+  // 백업 파일 → JSON 글자 (PDF 백업, 예전 .json/.txt 백업 모두)
+  function backupText(buf){
+    var u8 = new Uint8Array(buf);
+    if(u8.length > 4 && u8[0] === 0x25 && u8[1] === 0x50 && u8[2] === 0x44 && u8[3] === 0x46){
+      var bin = "", CH = 0x8000;
+      for(var i = 0; i < u8.length; i += CH) bin += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+      var a = bin.indexOf(PDF_MARK_BEGIN), b = a < 0 ? -1 : bin.indexOf(PDF_MARK_END, a);
+      if(a < 0 || b < 0) return null;
+      return new TextDecoder("utf-8").decode(b64Bytes(bin.slice(a + PDF_MARK_BEGIN.length, b)));
+    }
+    return new TextDecoder("utf-8").decode(u8);
+  }
+  // 공유할 파일 모양 후보 (앞에서부터 시도, 실패하면 '다시 공유'가 다음 후보로)
+  // 안드로이드 크롬은 canShare 가 true 여도 실제 공유에서 .json 을 거부하고, Webex 는 .txt 를 첨부로 받지 않는다 → 백업은 PDF
+  // 한글 파일명이 막히는 앱이 있을 때를 대비해 영문 이름 후보도 둔다 (불러오기는 이름, 확장자와 상관없음)
+  function shareVariants(b){
+    var d = new Date();
+    var ascii = "inspection_" + (data.date || todayISO()).replace(/-/g, "") + "_" + pad(d.getHours()) + pad(d.getMinutes());
+    if(b.kind === "csv"){
+      return [[b.name, "text/csv"], [ascii + ".csv", "text/csv"], [b.name.replace(/\.csv$/, ".txt"), "text/plain"]];
+    }
+    return [[b.name, "application/pdf"], [ascii + "_backup.pdf", "application/pdf"]];
+  }
+  function shareableFile(b){
+    if(!navigator.canShare || typeof File !== "function") return null;
+    var cands = shareVariants(b);
+    for(var i = b.tryIdx || 0; i < cands.length; i++){
+      try{
+        var f = new File([b.blob], cands[i][0], { type: cands[i][1] });
+        if(navigator.canShare({ files: [f] })){ b.tryIdx = i; return f; }
+      }catch(e){}
+    }
+    return null;
+  }
+  function plainDownload(blob, fname){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = fname; a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);   // 휴대폰은 저장이 늦게 시작될 수 있어 넉넉히
+  }
+  function markExported(){ data.exportedAt = Date.now(); changed(true, false); }
+
+  // PC: 저장 위치 고르는 창 (Chrome, Edge). 없으면 다운로드 폴더
+  function saveOnPc(b){
+    if(window.showSaveFilePicker && !IN_APP){
+      var accept = {}; accept[b.mime] = ["." + b.name.split(".").pop()];
+      var picker;
+      try{
+        picker = window.showSaveFilePicker({ suggestedName: b.name, id: "prod-elec-export", types: [{ description: b.kind.toUpperCase() + " 파일", accept: accept }] });
+      }catch(e){ picker = Promise.reject(e); }
+      picker.then(function(handle){
+        return handle.createWritable().then(function(w){
+          return w.write(b.blob).then(function(){ return w.close(); });
+        }).then(function(){ markExported(); showToast("저장했습니다 (" + handle.name + ")"); });
+      }).catch(function(e){
+        if(e && e.name === "AbortError"){ showToast("저장을 취소했습니다."); return; }
+        plainDownload(b.blob, b.name); markExported();
+        showToast("다운로드 폴더에 저장했습니다.");
+      });
+      return;
+    }
+    plainDownload(b.blob, b.name); markExported();
+    showToast("다운로드 폴더에 저장했습니다.");
+  }
+
+  function copyText(text){
+    function fallback(){
+      var t = el("textarea"); t.value = text; t.setAttribute("readonly", "");
+      t.style.position = "fixed"; t.style.top = "-1000px";
+      document.body.appendChild(t); t.select();
+      var ok = false;
+      try{ ok = document.execCommand("copy"); }catch(e){}
+      document.body.removeChild(t);
+      showToast(ok ? "표를 복사했습니다. 엑셀이나 메신저에 붙여넣으세요." : "복사하지 못했습니다. 다운로드를 이용해 주세요.");
+    }
+    if(navigator.clipboard && window.isSecureContext){
+      navigator.clipboard.writeText(text).then(function(){ showToast("표를 복사했습니다. 엑셀이나 메신저에 붙여넣으세요."); }, fallback);
+    }else fallback();
+  }
+
+  var IN_APP_WARN = "카카오톡, 밴드 같은 앱 안에서 열린 화면은 파일 저장이 막히는 경우가 많습니다. 오른쪽 위 메뉴(⋮ 또는 ⋯)에서 '다른 브라우저로 열기'를 눌러 크롬이나 사파리에서 열어 주세요.";
+
+  // 휴대폰에서 파일 공유 창을 쓸 수 있는지 (안드로이드 크롬, 아이폰 사파리 = 됨 / 앱 안 화면 대부분 = 안 됨)
+  var CAN_SHARE_FILES = (function(){
+    try{ return !!(navigator.canShare && typeof File === "function" && navigator.canShare({ files: [new File(["x"], "t.csv", { type: "text/csv" })] })); }
+    catch(e){ return false; }
+  })();
+
+  function shareFile(file, b){
+    return navigator.share({ files: [file] }).then(function(){
+      markExported();
+      showToast("보냈습니다.");
+    }, function(e){
+      if(e && e.name === "AbortError"){ otherWays(b, "공유 창을 닫았습니다. 필요하면 아래 방법을 쓰세요."); return; }
+      b.fails = (b.fails || 0) + 1;
+      b.lastErr = ((e && e.name) || "Error") + (e && e.message ? ": " + e.message : "");
+      b.tryIdx = (b.tryIdx || 0) + 1;            // 다음엔 다른 파일 모양으로
+      otherWays(b, "공유가 막혔습니다. " + (shareableFile(b) ? "'다시 공유'는 다른 파일 형식으로 시도합니다." : "'기기에 다운로드'를 쓰세요."));
+    });
+  }
+
+  // 공유 말고 다른 방법 (다시 공유, 다운로드, 표 복사)
+  function otherWays(b, why){
+    var opts = [];
+    var file = shareableFile(b);
+    if(file){
+      opts.push({
+        label: "📤 다시 공유 (Webex, 메일, 카카오톡)",
+        sub: IS_IOS ? "공유 창에서 Webex 를 고르거나 '파일에 저장'" : "공유 창에서 Webex, 드라이브, 메일 등을 고릅니다",
+        cls: "primary",
+        run: function(){ shareFile(file, b); }
+      });
+    }
+    opts.push({
+      label: "⬇ 기기에 다운로드",
+      sub: IS_IOS ? "'파일' 앱 > 다운로드 폴더에 저장됩니다 (Safari 확인 창에서 '다운로드')" : "휴대폰 '다운로드(Download)' 폴더에 저장됩니다",
+      cls: file ? "" : "primary",
+      run: function(){ plainDownload(b.blob, b.name); markExported(); showToast("다운로드를 시작했습니다. 알림창이나 다운로드 폴더를 확인하세요.", 3500); }
+    });
+    if(b.copy){
+      opts.push({ label: "📋 표 복사 (붙여넣기용)", sub: "엑셀, 메신저, 메일 본문에 바로 붙여넣기", run: function(){ copyText(b.copy); } });
+    }
+    showSheet({
+      title: b.kind === "csv" ? "📊 CSV 보내기" : "📤 백업 보내기 (PDF, 사진 포함)",
+      desc: (why ? why + "\n" : "") + (file ? file.name : b.name) + " (" + fmtSize(b.blob.size) + ")" +
+            (b.lastErr ? "\n오류 내용: " + b.lastErr + " / " + location.protocol.replace(":", "") + " / " + browserName() : ""),
+      warn: (IN_APP || !file) ? IN_APP_WARN : "",
+      options: opts
+    });
+  }
+
+  function exportFlow(kind){
+    closeCombos();
+    flush();
+    var b = kind === "csv" ? buildCsv() : buildJson();
+    if(!IS_MOBILE && !IN_APP){ saveOnPc(b); return; }
+    var file = shareableFile(b);
+    if(file){ shareFile(file, b); return; }      // 누른 즉시 공유 창 (Webex 바로 선택)
+    otherWays(b, "이 화면에서는 공유 창을 열 수 없습니다.");
+  }
+
+  // ---- 백업 불러오기 ----
+  function importFile(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var parsed = null;
+      try{ parsed = JSON.parse(String(backupText(reader.result) || "").replace(/^\uFEFF/, "")); }catch(e){}
+      var imp = normalize(parsed);
+      if(!imp){ showToast("백업 파일 형식이 아닙니다. '백업 보내기'로 만든 PDF(또는 예전 json)를 골라 주세요.", 3500); return; }
+      var n = 0, ph = 0;
+      imp.categories.forEach(function(c){ n += c.items.length; c.items.forEach(function(it){ ph += it.photos.length; }); });
+      var who = [imp.plant, imp.lineName, imp.eqName].filter(Boolean).join(" ") || "설비 미지정";
+      if(!confirm("이 백업으로 지금 화면의 점검 내용을 바꿀까요?\n\n" + who + "\n점검일자 " + dotDate(imp.date) + ", 항목 " + n + "개, 사진 " + ph + "장\n\n지금 내용이 필요하면 먼저 '백업 내보내기'를 해 두세요.")) return;
+      data = imp;
+      collapsed = new WeakSet();
+      setFilter("");
+      syncHeader(); render();
+      changed(true);
+      showToast("백업을 불러왔습니다.");
+    };
+    reader.onerror = function(){ showToast("파일을 읽지 못했습니다."); };
+    reader.readAsArrayBuffer(file);
+  }
+
+  // ---- 새 점검 / 초기화 ----
+  function hasContent(){
+    return data.categories.some(function(c){ return c.items.some(function(it){ return it.status || it.notes || it.photos.length; }); });
+  }
+  function newInspection(){
+    data.categories.forEach(function(c){ c.items.forEach(function(it){ it.status = null; it.notes = ""; it.photos = []; it.time = ""; }); });
+    data.date = todayISO();
+    clearEqLink(true);
+    data.exportedAt = 0;
+    setFilter(""); syncHeader(); render(); changed(true);
+    window.scrollTo(0, 0);
+    showToast("새 점검을 시작합니다. 설비를 골라 주세요.");
+  }
+  function resetAll(){
+    var keepInspector = data.inspector;
+    data = freshData();
+    data.inspector = keepInspector;
+    collapsed = new WeakSet();
+    setFilter(""); syncHeader(); render(); changed(true);
+    window.scrollTo(0, 0);
+    showToast("처음 상태로 되돌렸습니다.");
+  }
+  function resetFlow(){
+    closeCombos();
+    var unsaved = hasContent() && (!data.exportedAt || data.changedAt > data.exportedAt);
+    var opts = [];
+    if(unsaved) opts.push({ label: "📤 먼저 백업 내보내기", sub: "지금 점검 내용을 파일로 남깁니다", cls: "primary", run: function(){ exportFlow("json"); } });
+    opts.push({
+      label: "🆕 새 점검 시작",
+      sub: "점검 항목 구성, 점검자, 공장, 라인은 그대로 두고 결과, 메모, 사진, 설비만 비웁니다",
+      run: function(){ if(confirm("지금 점검 결과, 메모, 사진을 지우고 새 점검을 시작할까요?")) newInspection(); }
+    });
+    opts.push({
+      label: "↺ 처음 상태로 전체 초기화", cls: "danger",
+      sub: "추가하거나 지운 항목, 카테고리까지 기본 목록으로 되돌립니다 (점검자 이름만 남김)",
+      run: function(){ if(confirm("모든 점검 데이터를 초기화할까요? 되돌릴 수 없습니다.")) resetAll(); }
+    });
+    showSheet({
+      title: "🔄 새 점검",
+      desc: data.exportedAt ? "마지막 백업: " + new Date(data.exportedAt).toLocaleString("ko-KR") : "",
+      warn: unsaved ? "아직 백업하지 않은 점검 내용이 있습니다. 지우면 되살릴 수 없습니다." : "",
+      options: opts
+    });
+  }
+
+  // ---- 시작 ----
+  function layout(){
+    var h = $("bottomBar").offsetHeight;
+    document.documentElement.style.setProperty("--bar-h", h + "px");
+  }
+
+  function bindBottom(){
+    $("saveBtn").addEventListener("click", function(){
+      dirty = true;
+      flush().then(function(ok){ if(ok) showToast("이 기기에 저장했습니다. 다른 기기로 옮기려면 '백업 내보내기'를 쓰세요.", 3000); });
+    });
+    $("exportCsvBtn").addEventListener("click", function(){ exportFlow("csv"); });
+    $("exportJsonBtn").addEventListener("click", function(){ exportFlow("json"); });
+    $("printBtn").addEventListener("click", function(){
+      closeCombos(); flush();
+      if(typeof window.print !== "function"){ showToast("이 화면에서는 인쇄를 쓸 수 없습니다. 크롬이나 사파리에서 열어 주세요.", 3500); return; }
+      if(IN_APP) showToast("앱 안 화면에서는 인쇄가 안 될 수 있습니다. 안 되면 크롬이나 사파리에서 열어 주세요.", 3500);
+      setTimeout(function(){ window.print(); }, 50);
+    });
+    $("importBtn").addEventListener("click", function(){ closeCombos(); $("importFile").click(); });
+    $("importFile").addEventListener("change", function(){
+      var f = this.files && this.files[0];
+      this.value = "";
+      if(f) importFile(f);
+    });
+    $("resetBtn").addEventListener("click", resetFlow);
+
+    $("addCategoryBtn").addEventListener("click", addCategory);
+    $("newCatName").addEventListener("keydown", function(e){
+      if(e.key === "Enter" && !e.isComposing){ e.preventDefault(); addCategory(); }
+    });
+    $("photoModal").addEventListener("click", function(){ this.classList.remove("show"); });
+
+    var chips = document.querySelectorAll(".summary-chip");
+    for(var i = 0; i < chips.length; i++){
+      chips[i].addEventListener("click", function(){
+        var f = this.getAttribute("data-f");
+        setFilter(!f || filter === f ? "" : f);
+      });
+    }
+  }
+  function addCategory(){
+    var inp = $("newCatName");
+    var name = inp.value.trim();
+    if(!name){ inp.focus(); return; }
+    var cat = { name: name, items: [] };
+    data.categories.push(cat);
+    container.appendChild(buildCategory(cat));
+    inp.value = "";
+    updateCounts(); changed(true);
+    showToast("카테고리를 추가했습니다. 아래 칸에 점검 항목을 넣으세요.");
+  }
+
+  if(IS_MOBILE && CAN_SHARE_FILES){
+    $("exportCsvBtn").innerHTML = "📊 CSV<br>보내기";
+    $("exportJsonBtn").innerHTML = "📤 백업<br>보내기";
+  }
+  if(EDITION){
+    document.querySelector(".about summary").textContent = "버전 정보 v" + APP_VERSION + " " + EDITION + "판, 설비 목록 기준";
+  }
+  $("equipSrc").textContent = EQ.length
+    ? "설비 목록: " + EQUIP.src + " (금액, 시리얼 등은 넣지 않음)"
+    : "설비 목록 없음 (직접 입력)";
+  // ---- 공유 시험: 파일 종류별로 Webex 가 첨부로 받는지 확인 ----
+  function testBlob(t){
+    if(t === "txt") return new Blob(["share test txt"], { type: "text/plain" });
+    if(t === "csv") return new Blob(["\uFEFFa,b\r\n1,2"], { type: "text/csv" });
+    if(t === "json") return new Blob(['{"test":1}'], { type: "application/json" });
+    if(t === "pdf"){
+      var content = "BT /F1 24 Tf 40 70 Td (SHARE TEST PDF) Tj ET";
+      var objs = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 150] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
+        "<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
+      ];
+      var out = "%PDF-1.4\n", offs = [];
+      objs.forEach(function(o, i){ offs.push(out.length); out += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
+      var x = out.length;
+      out += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n";
+      offs.forEach(function(o){ out += ("0000000000" + o).slice(-10) + " 00000 n \n"; });
+      out += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + x + "\n%%EOF\n";
+      return new Blob([out], { type: "application/pdf" });
+    }
+    var c = document.createElement("canvas"); c.width = 300; c.height = 120;
+    var g = c.getContext("2d"); g.fillStyle = "#1A2B4A"; g.fillRect(0, 0, 300, 120);
+    g.fillStyle = "#fff"; g.font = "bold 26px sans-serif"; g.fillText("공유 시험 사진", 40, 70);
+    var bin = atob(c.toDataURL("image/png").split(",")[1]), arr = new Uint8Array(bin.length);
+    for(var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: "image/png" });
+  }
+  var testBtns = document.querySelectorAll(".share-test-btns button");
+  for(var ti = 0; ti < testBtns.length; ti++){
+    testBtns[ti].addEventListener("click", function(){
+      var t = this.getAttribute("data-t");
+      var blob = testBlob(t);
+      var f = new File([blob], "share_test." + t, { type: blob.type });
+      if(!navigator.share || !navigator.canShare || !navigator.canShare({ files: [f] })){ showToast(t.toUpperCase() + ": 이 화면은 파일 공유가 안 됩니다"); return; }
+      navigator.share({ files: [f] }).then(function(){ showToast(t.toUpperCase() + ": 공유 창으로 넘겼습니다. Webex 에 첨부됐는지 보세요"); },
+        function(e){ showToast(t.toUpperCase() + ": " + (e && e.name === "AbortError" ? "취소" : "막힘 (" + (e && e.name) + ")"), 3500); });
+    });
+  }
+
+  $("envInfo").textContent = "이 기기: " + browserName() + ", " + location.protocol.replace(":", "") +
+    ", 파일 공유 " + (CAN_SHARE_FILES ? "가능" : "불가") + ", 보안 연결 " + (window.isSecureContext ? "예" : "아니오");
+  layout();
+  window.addEventListener("resize", layout);
+  window.addEventListener("pagehide", function(){ flush(); });
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "hidden") flush(); });
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function(){}); }catch(e){}
+
+  loadAll().then(function(d){
+    data = d;
+    syncHeader();
+    render();
+    bindHeader();
+    bindBottom();
+    setSaveState(data.savedAt ? "ok" : "idle");
+    if(IN_APP) showToast("앱 안 화면입니다. 저장, 내보내기가 막히면 크롬이나 사파리에서 열어 주세요.", 4000);
+  });
+})();
+</script>
+<script>
+if("serviceWorker" in navigator && location.protocol !== "file:"){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      reg.addEventListener("updatefound", function(){
+        var nw = reg.installing;
+        if(nw) nw.addEventListener("statechange", function(){
+          if(nw.state === "installed" && navigator.serviceWorker.controller){
+            try{ if(typeof showToast === "function") showToast("새 버전이 준비됐습니다. 앱을 닫았다가 다시 열면 적용됩니다.", 4000); }catch(e){}
+          }
+        });
+      });
+    }).catch(function(){});
+  });
+}
+</script>
+</body>
+</html>
